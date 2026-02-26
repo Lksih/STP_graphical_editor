@@ -1,8 +1,10 @@
 ﻿using System.Drawing;
+using System.Dynamic;
+using System.Numerics;
 
 namespace Geometry
 {
-    public record Point(double X, double Y);
+    public class Point{public double X {get; set;} public double Y {get; set;}};
 
     public interface IFigureGraphicProperties
     {
@@ -18,7 +20,7 @@ namespace Geometry
     public interface IFigure
     {
         Point Center { get; }
-        ReadOnlySpan<Point> Vertex { get; }
+        List<Point> Vertex { get; }
         void Scale(double dx, double dy); // можно отрицательные для отражения
         void RadialScale(double dr);
         void Rotate(double angle);
