@@ -4,33 +4,25 @@ namespace Geometry
 {
     class Ellips : IFigure
     {
-        public Point Center { get; }
-        public List<Point> Vertex { get; }
+        public Point Center { get; set;}
+        public ReadOnlySpan<Point> Vertex { get => []; }
+        double Rx, Ry, Angle;
 
-        private double RadiusA, RadiusB, Angle;
-
-        public Ellips(double x, double y, double ra, double rb)
+        public Ellips(Point c, double rx, double ry)
         {
-            Center = new Point();
-            Center.X = x; 
-            Center.Y = y;
-            Vertex = new List<Point>{};
-            RadiusA = ra;
-            RadiusB = rb;
-            Angle = 0;
+            Center = c;
+            Rx = rx;
+            Ry = ry;
         }
         public void Scale(double dx, double dy)
         {
-            foreach (var vert in Vertex)
-            {
-                vert.X = Center.X + (vert.X - Center.X) * dx;
-                vert.Y = Center.Y + (vert.Y - Center.Y) * dy;
-            }
+            Rx *= dx;
+            Ry *= dy;
         }
         public void RadialScale(double dr)
         {
-            RadiusA *= dr;
-            RadiusB *= dr;
+            Rx *= dr;
+            Ry *= dr;
         }
         public void Rotate(double angle)
         {
@@ -38,33 +30,17 @@ namespace Geometry
         }
         public void Move(double dx, double dy)
         {
-            Center.X += dx;
-            Center.Y += dy;
+            Point d = new Point(dx, dy);
+            Center.Addition(d);
         }
-        public void UpdateVertex(double dra, double drb)
-        {
-            RadiusA += dra;
-            RadiusB += drb;
-        }
-        public IEnumerable<IDrawFigure> Draw()
-        {
-            
-        }
+        public void UpdateVertex(ReadOnlySpan<Point> NewVertex) => throw new NullReferenceException();
+        public IEnumerable<IDrawFigure> Draw() => throw new NullReferenceException();
         public bool IsIn(Point p, double eps)
         {
-            if (Vertex[0].X == Vertex[1].X)
-            {
-                return Math.Abs(p.X - Vertex[0].X) <= eps && Math.Min(Vertex[0].Y, Vertex[1].Y) - eps <= p.Y && p.Y <= Math.Max(Vertex[0].Y, Vertex[1].Y) - eps;
-            }
-            else if (Vertex[0].Y == Vertex[1].Y)
-            {
-                return Math.Abs(p.Y - Vertex[0].Y) <= eps && Math.Min(Vertex[0].X, Vertex[1].X) - eps <= p.X && p.X <= Math.Max(Vertex[0].X, Vertex[1].X) - eps;
-            }
-            else
-            {
-                double t1 = (p.X - Vertex[0].X) / (Vertex[1].X - Vertex[0].X), t2 = (p.Y - Vertex[0].Y) / (Vertex[1].Y - Vertex[0].Y), lenght = Math.Sqrt(Math.Pow(Vertex[0].X - Vertex[1].X, 2) + Math.Pow(Vertex[0].Y - Vertex[1].Y, 2));
-                return Math.Abs(t1 - t2) * lenght <= 2 * eps && (Math.Max(t2, t1) - 1) * lenght <= eps && Math.Min(t2, t1) * lenght >= -eps;
-            }
+            Point dst = p - Center;
+            double angle = Math.Atan2(dst.X, dst.Y) - Angle, r = Rx*Ry / Math.Sqrt(Math.Pow(Ry * Math.Cos(angle), 2) + Math.Pow(Rx * Math.Sin(angle), 2)), 
+            distance = Math.Sqrt(Math.Pow(dst.X, 2) + Math.Pow(dst.Y, 2));
+            return distance <= r + eps;
         }
     }
 }
