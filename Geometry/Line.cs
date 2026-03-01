@@ -1,70 +1,61 @@
 using System.Numerics;
+using System.Runtime.InteropServices;
 
 namespace Geometry
 {
     class Line : IFigure
     {
-        public Point Center { get; }
-        public List<Point> Vertex { get; }
+        public Point Center { get => (VertArray[0] + VertArray[1]) * 0.5;}
+        public ReadOnlySpan<Point> Vertex { get => VertArray; }
+        private Point[] VertArray;
 
-        public Line(double x1, double y1, double x2, double y2)
+        public Line(Point a, Point b)
         {
-            Point p1 = new Point(), p2 = new Point();
-            p1.X = x1;
-            p1.Y = y1;
-            p2.X = x2;
-            p2.Y = y2;
-            Center = new Point();
-            Center.X = Math.Min(x1, x2) + (Math.Max(x1, x2) - Math.Min(x1, x2)) / 2.0; 
-            Center.Y = Math.Min(y1, y2) + (Math.Max(y1, y2) - Math.Min(y1, y2)) / 2.0;
-            Vertex = new List<Point>{p1, p2};
+            VertArray = new Point[2];
+            VertArray.Append(a);
+            VertArray.Append(b);
+
         }
         public void Scale(double dx, double dy)
         {
-            foreach (var vert in Vertex)
+            for (int i = 0; i < VertArray.Count(); i++)
             {
-                vert.X = Center.X + (vert.X - Center.X) * dx;
-                vert.Y = Center.Y + (vert.Y - Center.Y) * dy;
+                Point dist = VertArray[i] - Center;
+                dist.X *= dx;
+                dist.Y *= dy;
+                VertArray[i] = Center + dist;
             }
         }
         public void RadialScale(double dr)
         {
-            foreach (var vert in Vertex)
+            for (int i = 0; i < VertArray.Count(); i++)
             {
-                vert.X = Center.X + (vert.X - Center.X) * dr;
-                vert.Y = Center.Y + (vert.Y - Center.Y) * dr;
+                VertArray[i] = Center + (VertArray[i] - Center) * dr;
             }
         }
         public void Rotate(double angle)
         {
-            foreach (var vert in Vertex)
+            for (int i = 0; i < VertArray.Count(); i++)
             {
+                Point vert = VertArray[i];
                 double tx = vert.X - Center.X, ty = vert.Y - Center.Y, currAngle = Math.Atan2(ty, tx), distance = Math.Sqrt(Math.Pow(tx, 2) + Math.Pow(ty, 2));
-                vert.X = Center.X + distance * Math.Cos(angle + currAngle);
-                vert.Y = Center.Y + distance * Math.Sin(angle + currAngle);
+                Point d = new Point(Math.Cos(angle + currAngle), Math.Sin(angle + currAngle));
+                d.Multiply(distance);
+                VertArray[i] = Center + d;
             }
         }
         public void Move(double dx, double dy)
         {
-            foreach (var vert in Vertex)
-            {
-                vert.X += dx;
-                vert.Y += dy;
-            }
-            Center.X += dx;
-            Center.Y += dy;
+            Point d = new Point(dx, dy);
+            for (int i = 0; i < VertArray.Count(); i++)
+                VertArray[i].Addition(d);
+            Center.Addition(d);
         }
-        public void UpdateVertex(int index, double x, double y)
+        public void UpdateVertex(ReadOnlySpan<Point> NewVertex)
         {
-            Vertex[index].X = x;
-            Vertex[index].Y = y;
-            Center.X = Math.Min(Vertex[0].X, Vertex[1].X) + (Math.Max(Vertex[0].X, Vertex[1].X) - Math.Min(Vertex[0].X, Vertex[1].X)) / 2.0; 
-            Center.Y = Math.Min(Vertex[0].Y, Vertex[1].Y) + (Math.Max(Vertex[0].Y, Vertex[1].Y) - Math.Min(Vertex[0].Y, Vertex[1].Y)) / 2.0;
+            VertArray = NewVertex.ToArray();
         }
-        public IEnumerable<IDrawFigure> Draw()
-        {
-            
-        }
+        public IEnumerable<IDrawFigure> Draw() => throw new NullReferenceException();
         public bool IsIn(Point p, double eps)
         {
             if (Vertex[0].X == Vertex[1].X)
