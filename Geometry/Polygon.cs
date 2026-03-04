@@ -92,7 +92,43 @@ namespace Geometry
                 summ += angle;
             }
             
-            return Math.Round(summ, 14) == Math.Round(Math.PI, 14);
+            if (Math.Round(summ, 14) == Math.Round(Math.PI, 14))
+                return true;
+            else
+            {
+                for (int i = 0; i < VertList.Count - 1; i++)
+                {
+                    if (VertList[i].X == VertList[i + 1].X)
+                    {
+                    if (Math.Abs(p.X - VertList[i].X) <= eps && Math.Min(VertList[i].Y, VertList[i + 1].Y) - eps <= p.Y && p.Y <= Math.Max(VertList[i].Y, VertList[i + 1].Y) - eps)
+                        return true;
+                    }
+                    else if (VertList[i].Y == Vertex[1].Y)
+                    {
+                    if (Math.Abs(p.Y - VertList[i].Y) <= eps && Math.Min(VertList[i].X, VertList[i + 1].X) - eps <= p.X && p.X <= Math.Max(VertList[i].X, VertList[i + 1].X) - eps)
+                        return true;
+                    }
+                    else
+                    {
+                    double t1 = (p.X - VertList[i].X) / (VertList[i + 1].X - VertList[i].X), t2 = (p.Y - VertList[i].Y) / (VertList[i + 1].Y - VertList[i].Y), lenght = Math.Sqrt(Math.Pow(VertList[i].X - VertList[i + 1].X, 2) + Math.Pow(VertList[i].Y - VertList[i + 1].Y, 2));
+                    if (Math.Abs(t1 - t2) * lenght <= 2 * eps && (Math.Max(t2, t1) - 1) * lenght <= eps && Math.Min(t2, t1) * lenght >= -eps)
+                        return true;
+                    }
+                }
+                if (VertList[0].X == VertList[VertList.Count() - 1].X)
+                    {
+                    return Math.Abs(p.X - VertList[0].X) <= eps && Math.Min(VertList[0].Y, VertList[VertList.Count() - 1].Y) - eps <= p.Y && p.Y <= Math.Max(VertList[0].Y, VertList[VertList.Count() - 1].Y) - eps;
+                    }
+                    else if (VertList[0].Y == Vertex[VertList.Count() - 1].Y)
+                    {
+                    return Math.Abs(p.Y - VertList[0].Y) <= eps && Math.Min(VertList[0].X, VertList[VertList.Count() - 1].X) - eps <= p.X && p.X <= Math.Max(VertList[0].X, VertList[VertList.Count() - 1].X) - eps;
+                    }
+                    else
+                    {
+                    double t1 = (p.X - VertList[0].X) / (VertList[VertList.Count() - 1].X - VertList[0].X), t2 = (p.Y - VertList[0].Y) / (VertList[VertList.Count() - 1].Y - VertList[0].Y), lenght = Math.Sqrt(Math.Pow(VertList[0].X - VertList[VertList.Count() - 1].X, 2) + Math.Pow(VertList[0].Y - VertList[VertList.Count() - 1].Y, 2));
+                    return Math.Abs(t1 - t2) * lenght <= 2 * eps && (Math.Max(t2, t1) - 1) * lenght <= eps && Math.Min(t2, t1) * lenght >= -eps;
+                    }
+            }
         }
     }
 }
