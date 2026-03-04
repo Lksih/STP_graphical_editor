@@ -62,7 +62,37 @@ namespace Geometry
         public IEnumerable<IDrawFigure> Draw() => throw new NullReferenceException();
         public bool IsIn(Point p, double eps)
         {
-            throw new NullReferenceException();
+            if (VertList.Count() < 3)
+            return false;
+            double sgn = 0, sgn2 = 0, summ = 0;
+            Point dif1 = VertList[0] - p, dif2 = VertList[VertList.Count() - 1] - p;
+            if (dif1.X == 0 && dif1.Y == 0 || dif2.X == 0 && dif2.Y == 0)
+                return true;
+            double angle = Math.Acos((dif1.X * dif2.Y + dif1.Y * dif2.X) / Math.Sqrt((Math.Pow(dif1.X, 2) + Math.Pow(dif1.Y, 2))*(Math.Pow(dif2.X, 2) + Math.Pow(dif2.Y, 2))));
+            summ += angle;
+            double pseudonorm = dif1.X * dif2.Y - dif1.Y * dif2.X;
+            if (pseudonorm != 0)
+                sgn = pseudonorm / Math.Abs(pseudonorm);
+            for (int i = 0; i < VertList.Count() - 1; i++)
+            {
+                dif1 = VertList[i] - p;
+                dif2 = VertList[i + 1] - p;
+                if (dif1.X == 0 && dif1.Y == 0 || dif2.X == 0 && dif2.Y == 0)
+                    return true;
+                angle = Math.Acos((dif1.X * dif2.Y + dif1.Y * dif2.X) / Math.Sqrt((Math.Pow(dif1.X, 2) + Math.Pow(dif1.Y, 2))*(Math.Pow(dif2.X, 2) + Math.Pow(dif2.Y, 2))));
+                pseudonorm = dif1.X * dif2.Y - dif1.Y * dif2.X;
+                if (pseudonorm != 0)
+                {
+                    sgn2 = pseudonorm / Math.Abs(pseudonorm);
+                    if (sgn == 0)
+                        sgn = sgn2;
+                    else
+                        angle *= sgn2 * sgn;
+                }
+                summ += angle;
+            }
+            
+            return Math.Round(summ, 14) == Math.Round(Math.PI, 14);
         }
     }
 }
