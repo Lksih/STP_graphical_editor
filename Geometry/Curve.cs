@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Geometry
 {
-    class Curve : IFigure
+    public class Curve : IFigure
     {
         public Point Center { get; private set;}
         public ReadOnlySpan<Point> Vertex { get => CollectionsMarshal.AsSpan(VertList); }
@@ -11,8 +11,8 @@ namespace Geometry
 
         public Curve(ReadOnlySpan<Point> Verts)
         {
-            if (Verts.ToArray().Count() < 2)
-            throw new IncorrectVertexSpan("Кривая должна задаваться не менее чем 2-мя вершинами");
+            if (Verts.ToArray().Count() != 3)
+            throw new IncorrectVertexSpan("Кривая должна задаваться 3-мя вершинами");
             Center = new Point(0, 0);
             VertList = [.. Verts];
             foreach (var vert in VertList)
@@ -63,8 +63,8 @@ namespace Geometry
         }
         public void UpdateVertex(ReadOnlySpan<Point> NewVertex)
         {
-            if (NewVertex.ToArray().Count() < 2)
-            throw new IncorrectVertexSpan("Кривая должна задаваться не менее чем 2-мя вершинами");
+            if (NewVertex.ToArray().Count() != 3)
+            throw new IncorrectVertexSpan("Кривая должна задаваться 3-мя вершинами");
             VertList = [.. NewVertex];
             foreach (var vert in VertList)
                 Center.Addition(vert);
