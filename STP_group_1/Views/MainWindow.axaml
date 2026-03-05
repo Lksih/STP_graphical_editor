@@ -1,20 +1,308 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:STP_group_1.ViewModels"
+        xmlns:controls="using:STP_group_1.Views.Controls"
+        xmlns:conv="using:STP_group_1.Converters"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="STP_group_1.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
+        x:Name="Root"
         Icon="/Assets/avalonia-logo.ico"
         Title="STP_group_1">
 
     <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+   
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <TextBlock Text="{Binding Greeting}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+    <Window.KeyBindings>
+        <KeyBinding Gesture="Ctrl+Z" Command="{Binding UndoCommand}" />
+        <KeyBinding Gesture="Ctrl+Y" Command="{Binding RedoCommand}" />
+        <KeyBinding Gesture="Ctrl+Shift+Z" Command="{Binding RedoCommand}" />
+
+        <KeyBinding Gesture="E" Command="{Binding SelectToolCommand}" CommandParameter="Eraser" />
+        <KeyBinding Gesture="V" Command="{Binding SelectToolCommand}" CommandParameter="Move" />
+        <KeyBinding Gesture="R" Command="{Binding RotateSelectedFigureCommand}" />
+        <KeyBinding Gesture="L" Command="{Binding SelectToolCommand}" CommandParameter="Line" />
+        <KeyBinding Gesture="P" Command="{Binding SelectToolCommand}" CommandParameter="Polygon" />
+        <KeyBinding Gesture="O" Command="{Binding SelectToolCommand}" CommandParameter="Ellipse" />
+    </Window.KeyBindings>
+
+    <DockPanel>
+        <DockPanel.Resources>
+            <conv:ColorToBrushConverter x:Key="ColorToBrush" />
+            <conv:BoolToEyeGlyphConverter x:Key="BoolToEyeGlyph" />
+            <conv:BoolToOpacityConverter x:Key="BoolToOpacity" />
+        </DockPanel.Resources>
+        <!-- Top menu -->
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="_Файл">
+                <MenuItem Header="_Создать…" Command="{Binding NewCommand}" />
+                <MenuItem Header="_Открыть…" Command="{Binding OpenCommand}" />
+                <Separator/>
+                <MenuItem Header="_Сохранить" Command="{Binding SaveCommand}" />
+                <MenuItem Header="_Экспорт…" Command="{Binding ExportCommand}" />
+                <Separator/>
+                <MenuItem Header="В_ыход" Command="{Binding ExitCommand}" />
+            </MenuItem>
+            <MenuItem Header="_Система">
+                <MenuItem Header="_Отменить" Command="{Binding UndoCommand}" InputGesture="Ctrl+Z" />
+                <MenuItem Header="_Повторить" Command="{Binding RedoCommand}" />
+                <Separator/>
+                <MenuItem Header="_Тема">
+                    <MenuItem Header="Системная" Command="{Binding SelectThemeCommand}" CommandParameter="System" />
+                    <MenuItem Header="Светлая" Command="{Binding SelectThemeCommand}" CommandParameter="Light" />
+                    <MenuItem Header="Тёмная" Command="{Binding SelectThemeCommand}" CommandParameter="Dark" />
+                </MenuItem>
+            </MenuItem>
+        </Menu>
+
+        <!-- Properties strip -->
+        <Border DockPanel.Dock="Top" Background="{DynamicResource SystemControlBackgroundBaseLowBrush}" Padding="8">
+            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                <TextBlock Text="{Binding SelectedToolDisplayName}" VerticalAlignment="Center" FontWeight="SemiBold"/>
+
+                <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                    <TextBlock Text="Цвет фигур" VerticalAlignment="Center"/>
+                    <ColorPicker Color="{Binding ForegroundColor}" Width="180"/>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                    <TextBlock Text="Фон холста" VerticalAlignment="Center"/>
+                    <ColorPicker Color="{Binding CanvasBackground}" Width="180"/>
+                </StackPanel>
+
+                <Separator Width="1" Margin="8,0"/>
+
+                <Button Content="-" Command="{Binding ZoomOutCommand}" />
+                <TextBox Width="70" Text="{Binding ZoomPercentText}" />
+                <Button Content="+" Command="{Binding ZoomInCommand}" />
+            </StackPanel>
+        </Border>
+
+        <!-- Left toolbar -->
+        <Border DockPanel.Dock="Left"
+                Background="{DynamicResource SystemControlBackgroundBaseLowBrush}"
+                Padding="8">
+            <StackPanel Spacing="10">
+                <!-- Tools group -->
+                <StackPanel>
+                    <TextBlock Text="Инструменты" Margin="2,0,0,2" FontWeight="SemiBold"/>
+                    <UniformGrid Rows="0" Columns="2">
+                        <ToggleButton Margin="2"
+                                      ToolTip.Tip="Перемещение (V)"
+                                      IsChecked="{Binding IsMoveTool}"
+                                      Command="{Binding SelectToolCommand}" CommandParameter="Move">
+                            <TextBlock Text="↕" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </ToggleButton>
+
+                        <ToggleButton Margin="2"
+                                      ToolTip.Tip="Удаление объекта (E)"
+                                      IsChecked="{Binding IsEraserTool}"
+                                      Command="{Binding SelectToolCommand}" CommandParameter="Eraser">
+                            <TextBlock Text="Del" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </ToggleButton>
+
+                        <Button Margin="2"
+                                ToolTip.Tip="Повернуть выделенную фигуру (R)"
+                                Command="{Binding RotateSelectedFigureCommand}">
+                            <TextBlock Text="⟳" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Button>
+                    </UniformGrid>
+                </StackPanel>
+
+                <!-- Figure tools -->
+                <StackPanel Margin="0,12,0,0">
+                    <TextBlock Text="Фигуры (режим)" Margin="2,0,0,2" FontWeight="SemiBold"/>
+                    <UniformGrid Rows="0" Columns="2">
+                        <ToggleButton Margin="2"
+                                      ToolTip.Tip="Режим: линия (L)"
+                                      IsChecked="{Binding IsLineTool}"
+                                      Command="{Binding SelectToolCommand}" CommandParameter="Line">
+                            <TextBlock Text="Line" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </ToggleButton>
+
+                        <ToggleButton Margin="2"
+                                      ToolTip.Tip="Режим: многоугольник (P)"
+                                      IsChecked="{Binding IsPolygonTool}"
+                                      Command="{Binding SelectToolCommand}" CommandParameter="Polygon">
+                            <TextBlock Text="Poly" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </ToggleButton>
+
+                        <ToggleButton Margin="2"
+                                      ToolTip.Tip="Режим: эллипс (O)"
+                                      IsChecked="{Binding IsEllipseTool}"
+                                      Command="{Binding SelectToolCommand}" CommandParameter="Ellipse">
+                            <TextBlock Text="Ellipse" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </ToggleButton>
+                    </UniformGrid>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- Right panel: Colors + Layers -->
+        <Border DockPanel.Dock="Right" Background="{DynamicResource SystemControlBackgroundBaseLowBrush}" Padding="10" Width="300">
+            <DockPanel>
+                <!-- Colors -->
+                <StackPanel DockPanel.Dock="Top" Spacing="10">
+                    <TextBlock Text="Colors" FontWeight="SemiBold" />
+
+                    <Grid ColumnDefinitions="Auto,Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                        <!-- FG/BG swatches -->
+                        <Border Grid.Row="0" Grid.Column="0" Width="44" Height="44"
+                                CornerRadius="6"
+                                BorderThickness="1"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                Background="{Binding ForegroundColor, Converter={StaticResource ColorToBrush}}"
+                                ToolTip.Tip="Цвет фигур" />
+
+                        <Border Grid.Row="0" Grid.Column="1" Width="44" Height="44"
+                                CornerRadius="6"
+                                BorderThickness="1"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                Background="{Binding CanvasBackground, Converter={StaticResource ColorToBrush}}"
+                                ToolTip.Tip="Фон холста" />
+
+                        <!-- Recent palette -->
+                        <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Text="Recent" />
+                    </Grid>
+
+                    <ItemsControl ItemsSource="{Binding RecentColors}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel ItemWidth="26" ItemHeight="26" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Width="24" Height="24"
+                                        CornerRadius="4"
+                                        BorderThickness="1"
+                                        BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                        Background="{Binding ., Converter={StaticResource ColorToBrush}}">
+                                    <Border.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="Set FG"
+                                                      Command="{Binding $parent[Window].DataContext.SetForegroundFromRecentCommand}"
+                                                      CommandParameter="{Binding .}" />
+                                            <MenuItem Header="Set BG"
+                                                      Command="{Binding $parent[Window].DataContext.SetBackgroundFromRecentCommand}"
+                                                      CommandParameter="{Binding .}" />
+                                        </ContextMenu>
+                                    </Border.ContextMenu>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Fixed palette  -->
+                    <TextBlock Text="Palette" Margin="0,8,0,0" />
+                    <UniformGrid Columns="6" Rows="0" Margin="0,4,0,0">
+                        <!-- basic Photoshop-like row -->
+                        <Button Width="20" Height="20" Margin="2"
+                                Background="#000000"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                Command="{Binding SetForegroundFromRecentCommand}"
+                                CommandParameter="#000000"/>
+                        <Button Width="20" Height="20" Margin="2"
+                                Background="#808080"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                Command="{Binding SetForegroundFromRecentCommand}"
+                                CommandParameter="#808080"/>
+                        <Button Width="20" Height="20" Margin="2"
+                                Background="#FFFFFF"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                Command="{Binding SetForegroundFromRecentCommand}"
+                                CommandParameter="#FFFFFF"/>
+                        <Button Width="20" Height="20" Margin="2"
+                                Background="#FF0000"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                Command="{Binding SetForegroundFromRecentCommand}"
+                                CommandParameter="#FF0000"/>
+                        <Button Width="20" Height="20" Margin="2"
+                                Background="#00FF00"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                Command="{Binding SetForegroundFromRecentCommand}"
+                                CommandParameter="#00FF00"/>
+                        <Button Width="20" Height="20" Margin="2"
+                                Background="#0000FF"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                Command="{Binding SetForegroundFromRecentCommand}"
+                                CommandParameter="#0000FF"/>
+
+                        <!-- extra row -->
+                        <Button Width="20" Height="20" Margin="2"
+                                Background="#FFFF00"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                Command="{Binding SetForegroundFromRecentCommand}"
+                                CommandParameter="#FFFF00"/>
+                        <Button Width="20" Height="20" Margin="2"
+                                Background="#FF00FF"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                Command="{Binding SetForegroundFromRecentCommand}"
+                                CommandParameter="#FF00FF"/>
+                        <Button Width="20" Height="20" Margin="2"
+                                Background="#00FFFF"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                Command="{Binding SetForegroundFromRecentCommand}"
+                                CommandParameter="#00FFFF"/>
+                        <Button Width="20" Height="20" Margin="2"
+                                Background="#C0C0C0"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                Command="{Binding SetForegroundFromRecentCommand}"
+                                CommandParameter="#C0C0C0"/>
+                        <Button Width="20" Height="20" Margin="2"
+                                Background="#804000"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                Command="{Binding SetForegroundFromRecentCommand}"
+                                CommandParameter="#804000"/>
+                        <Button Width="20" Height="20" Margin="2"
+                                Background="#008040"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                Command="{Binding SetForegroundFromRecentCommand}"
+                                CommandParameter="#008040"/>
+                    </UniformGrid>
+
+                    <Separator/>
+                </StackPanel>
+
+                <!-- Layers -->
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="Layers" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <Button Content="+" ToolTip.Tip="New layer" Command="{Binding NewLayerCommand}" />
+                        <Button Content="🗑" ToolTip.Tip="Delete layer" Command="{Binding DeleteLayerCommand}" />
+                    </StackPanel>
+
+                    <ListBox Name="LayersList" ItemsSource="{Binding Layers}" SelectedItem="{Binding SelectedLayer}" Margin="0,8,0,0">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border CornerRadius="8" Padding="8" Margin="0,0,0,6"
+                                        Background="{DynamicResource SystemControlBackgroundChromeLowBrush}">
+                                    <DockPanel LastChildFill="True">
+                                        <ToggleButton DockPanel.Dock="Left"
+                                                      Width="28"
+                                                      IsChecked="{Binding IsVisible}"
+                                                      Content="{Binding IsVisible, Converter={StaticResource BoolToEyeGlyph}}"
+                                                      Opacity="{Binding IsVisible, Converter={StaticResource BoolToOpacity}}" />
+                                        <Border DockPanel.Dock="Left" Width="44" Height="32" Background="{Binding PreviewBrush}" Margin="8,0"
+                                                CornerRadius="6"
+                                                BorderThickness="1"
+                                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                                    </DockPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Center canvas -->
+        <controls:CanvasViewport />
+    </DockPanel>
 
 </Window>

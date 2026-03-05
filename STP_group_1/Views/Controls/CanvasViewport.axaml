@@ -1,0 +1,28 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:STP_group_1.ViewModels"
+             xmlns:controls="using:STP_group_1.Views.Controls"
+             x:Class="STP_group_1.Views.Controls.CanvasViewport"
+             x:DataType="vm:MainWindowViewModel">
+  <Border Background="{DynamicResource SystemControlBackgroundBaseLowBrush}">
+    <ScrollViewer Name="PART_Scroll"
+                  HorizontalScrollBarVisibility="Auto"
+                  VerticalScrollBarVisibility="Auto">
+      <Border Name="PART_Canvas"
+              Width="{Binding CanvasWidthZoomed}"
+              Height="{Binding CanvasHeightZoomed}"
+              Background="{Binding CanvasBackground}"
+              Margin="24"
+              BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+              BorderThickness="1">
+        <controls:GeometryCanvas Figures="{Binding Figures}"
+                                SelectedFigure="{Binding SelectedFigure}"
+                                ZoomFactor="{Binding ZoomFactor}"
+                                Width="{Binding CanvasWidthZoomed}"
+                                Height="{Binding CanvasHeightZoomed}" />
+      </Border>
+    </ScrollViewer>
+  </Border>
+</UserControl>
+
+
