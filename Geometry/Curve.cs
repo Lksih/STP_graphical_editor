@@ -3,16 +3,16 @@ using System.Runtime.InteropServices;
 
 namespace Geometry
 {
-    class Polygon : IFigure
+    class Curve : IFigure
     {
         public Point Center { get; private set;}
         public ReadOnlySpan<Point> Vertex { get => CollectionsMarshal.AsSpan(VertList); }
         private List<Point> VertList;
 
-        public Polygon(ReadOnlySpan<Point> Verts)
+        public Curve(ReadOnlySpan<Point> Verts)
         {
-            if (Verts.ToArray().Count() < 3)
-            throw new IncorrectVertexSpan("Количество точек в фигуре должно быть  не меньше 3-х");
+            if (Verts.ToArray().Count() < 2)
+            throw new IncorrectVertexSpan("Кривая должна задаваться не менее чем 2-мя вершинами");
             Center = new Point(0, 0);
             VertList = [.. Verts];
             foreach (var vert in VertList)
@@ -63,8 +63,8 @@ namespace Geometry
         }
         public void UpdateVertex(ReadOnlySpan<Point> NewVertex)
         {
-            if (NewVertex.ToArray().Count() < 3)
-            throw new IncorrectVertexSpan("Количество точек в фигуре должно быть  не меньше 3-х");
+            if (NewVertex.ToArray().Count() < 2)
+            throw new IncorrectVertexSpan("Кривая должна задаваться не менее чем 2-мя вершинами");
             VertList = [.. NewVertex];
             foreach (var vert in VertList)
                 Center.Addition(vert);
@@ -75,41 +75,7 @@ namespace Geometry
         {
             if (eps < 0)
             throw new IncorrectInaccuracyParameter();
-            double sgn = 0, sgn2 = 0, summ = 0;
-            Point dif1 = VertList[0] - p, dif2 = VertList[VertList.Count() - 1] - p;
-            if (dif1.X == 0 && dif1.Y == 0 || dif2.X == 0 && dif2.Y == 0)
-                return true;
-            double angle = Math.Acos((dif1.X * dif2.Y + dif1.Y * dif2.X) / 
-            Math.Sqrt((Math.Pow(dif1.X, 2) + Math.Pow(dif1.Y, 2))*(Math.Pow(dif2.X, 2) + Math.Pow(dif2.Y, 2))));
-            summ += angle;
-            double pseudonorm = dif1.X * dif2.Y - dif1.Y * dif2.X;
-            if (pseudonorm != 0)
-                sgn = pseudonorm / Math.Abs(pseudonorm);
-            for (int i = 0; i < VertList.Count() - 1; i++)
-            {
-                dif1 = VertList[i] - p;
-                dif2 = VertList[i + 1] - p;
-                if (dif1.X == 0 && dif1.Y == 0 || dif2.X == 0 && dif2.Y == 0)
-                    return true;
-                angle = Math.Acos((dif1.X * dif2.Y + dif1.Y * dif2.X) / 
-                Math.Sqrt((Math.Pow(dif1.X, 2) + Math.Pow(dif1.Y, 2))*(Math.Pow(dif2.X, 2) + Math.Pow(dif2.Y, 2))));
-                pseudonorm = dif1.X * dif2.Y - dif1.Y * dif2.X;
-                if (pseudonorm != 0)
-                {
-                    sgn2 = pseudonorm / Math.Abs(pseudonorm);
-                    if (sgn == 0)
-                        sgn = sgn2;
-                    else
-                        angle *= sgn2 * sgn;
-                }
-                summ += angle;
-            }
-            
-            if (Math.Round(summ, 14) == Math.Round(Math.PI, 14))
-                return true;
-            else
-            {
-                for (int i = 0; i < VertList.Count - 1; i++)
+            for (int i = 0; i < VertList.Count - 1; i++)
                 {
                     if (VertList[i].X == VertList[i + 1].X)
                     {
@@ -130,7 +96,9 @@ namespace Geometry
                     double t1 = (p.X - VertList[i].X) / (VertList[i + 1].X - VertList[i].X), 
                     t2 = (p.Y - VertList[i].Y) / (VertList[i + 1].Y - VertList[i].Y), 
                     lenght = Math.Sqrt(Math.Pow(VertList[i].X - VertList[i + 1].X, 2) + Math.Pow(VertList[i].Y - VertList[i + 1].Y, 2));
-                    if (Math.Abs(t1 - t2) * lenght <= 2 * eps && (Math.Max(t2, t1) - 1) * lenght <= eps && Math.Min(t2, t1) * lenght >= -eps)
+                    if (Math.Abs(t1 - t2) * lenght <= 2 * eps && 
+                    (Math.Max(t2, t1) - 1) * lenght <= eps && 
+                    Math.Min(t2, t1) * lenght >= -eps)
                         return true;
                     }
                 }
@@ -150,12 +118,10 @@ namespace Geometry
                     {
                     double t1 = (p.X - VertList[0].X) / (VertList[VertList.Count() - 1].X - VertList[0].X), 
                     t2 = (p.Y - VertList[0].Y) / (VertList[VertList.Count() - 1].Y - VertList[0].Y), 
-                    lenght = Math.Sqrt(Math.Pow(VertList[0].X - VertList[VertList.Count() - 1].X, 2) + 
-                    Math.Pow(VertList[0].Y - VertList[VertList.Count() - 1].Y, 2));
+                    lenght = Math.Sqrt(Math.Pow(VertList[0].X - VertList[VertList.Count() - 1].X, 2) + Math.Pow(VertList[0].Y - VertList[VertList.Count() - 1].Y, 2));
                     return Math.Abs(t1 - t2) * lenght <= 2 * eps && 
                     (Math.Max(t2, t1) - 1) * lenght <= eps && Math.Min(t2, t1) * lenght >= -eps;
                     }
-            }
         }
     }
 }

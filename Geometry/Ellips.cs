@@ -16,11 +16,15 @@ namespace Geometry
         }
         public void Scale(double dx, double dy)
         {
+            if (dx == 0 || dy == 0)
+            throw new IncorrectScaleParameter();
             Rx *= dx;
             Ry *= dy;
         }
         public void RadialScale(double dr)
         {
+            if (dr == 0)
+            throw new IncorrectScaleParameter();
             Rx *= dr;
             Ry *= dr;
         }
@@ -33,10 +37,12 @@ namespace Geometry
             Point d = new Point(dx, dy);
             Center.Addition(d);
         }
-        public void UpdateVertex(ReadOnlySpan<Point> NewVertex) => throw new NullReferenceException();
+        public void UpdateVertex(ReadOnlySpan<Point> NewVertex) => throw new IncorrectVertexSpan("Эллипс не имеет вершин");
         public IEnumerable<IDrawFigure> Draw() => throw new NullReferenceException();
         public bool IsIn(Point p, double eps)
         {
+            if (eps < 0)
+            throw new IncorrectInaccuracyParameter();
             Point dst = p - Center;
             double angle = Math.Atan2(dst.X, dst.Y) - Angle, r = Rx*Ry / Math.Sqrt(Math.Pow(Ry * Math.Cos(angle), 2) + Math.Pow(Rx * Math.Sin(angle), 2)), 
             distance = Math.Sqrt(Math.Pow(dst.X, 2) + Math.Pow(dst.Y, 2));

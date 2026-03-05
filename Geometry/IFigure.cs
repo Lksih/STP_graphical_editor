@@ -65,4 +65,16 @@ namespace Geometry
         IEnumerable<IDrawFigure> Draw();
         bool IsIn(Point p, double eps);
     }
+    public class IncorrectScaleParameter : Exception
+        {
+            public IncorrectScaleParameter() : base("Параметр масштабирования не должен быть равен 0") { }
+        }
+    public class IncorrectInaccuracyParameter : Exception
+        {
+            public IncorrectInaccuracyParameter() : base("Параметр погрешности должен быть неотрицательным") { }
+        }
+    public class IncorrectVertexSpan : Exception
+        {
+            public IncorrectVertexSpan(string message) : base(message) { }
+        }
 }
