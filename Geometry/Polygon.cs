@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Geometry
 {
-    class Polygon : IFigure
+    public class Polygon : IFigure
     {
         public Point Center { get; private set;}
         public ReadOnlySpan<Point> Vertex { get => CollectionsMarshal.AsSpan(VertList); }
