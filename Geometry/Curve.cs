@@ -73,7 +73,8 @@ namespace Geometry
         public IEnumerable<IDrawFigure> Draw() => throw new NullReferenceException();
         public bool IsIn(Point p, double eps)
         {
-            if (eps < 0)
+            throw new NullReferenceException();
+            /*if (eps < 0)
             throw new IncorrectInaccuracyParameter();
             for (int i = 0; i < VertList.Count - 1; i++)
                 {
@@ -121,7 +122,7 @@ namespace Geometry
                     lenght = Math.Sqrt(Math.Pow(VertList[0].X - VertList[VertList.Count() - 1].X, 2) + Math.Pow(VertList[0].Y - VertList[VertList.Count() - 1].Y, 2));
                     return Math.Abs(t1 - t2) * lenght <= 2 * eps && 
                     (Math.Max(t2, t1) - 1) * lenght <= eps && Math.Min(t2, t1) * lenght >= -eps;
-                    }
+                    }*/
         }
     }
 }
