@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Geometry
 {
-    class Line : IFigure
+    public class Line : IFigure
     {
         public Point Center { get => (VertArray[0] + VertArray[1]) * 0.5;}
         public ReadOnlySpan<Point> Vertex { get => VertArray; }

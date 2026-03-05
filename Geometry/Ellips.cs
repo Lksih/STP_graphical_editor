@@ -2,7 +2,7 @@ using System.Numerics;
 
 namespace Geometry
 {
-    class Ellips : IFigure
+    public class Ellips : IFigure
     {
         public Point Center { get; set;}
         public ReadOnlySpan<Point> Vertex { get => []; }
