@@ -2,13 +2,13 @@ using System.Numerics;
 
 namespace Geometry
 {
-    public class Ellips : IFigure
+    public class Ellipse : IFigure
     {
         public Point Center { get; set;}
         public ReadOnlySpan<Point> Vertex { get => []; }
         double Rx, Ry, Angle;
 
-        public Ellips(Point c, double rx, double ry)
+        public Ellipse(Point c, double rx, double ry)
         {
             Center = c;
             Rx = rx;

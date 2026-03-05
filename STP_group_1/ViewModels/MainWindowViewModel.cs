@@ -12,6 +12,7 @@ using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
+using UI.Models;
 
 namespace STP_group_1.ViewModels;
 
@@ -491,11 +492,10 @@ public sealed class MainWindowViewModel : ViewModelBase
         var a = new Geometry.Point(cx - 100, cy);
         var b = new Geometry.Point(cx + 100, cy);
 
-        var fig = new Line(a, b)
-        {
-            Color = System.Drawing.Color.FromArgb(ForegroundColor.A, ForegroundColor.R, ForegroundColor.G, ForegroundColor.B),
-            Thickness = 2.0
-        };
+        var fig = new GraphicLine(a, b,
+            System.Drawing.Color.FromArgb(ForegroundColor.A, ForegroundColor.R, ForegroundColor.G, ForegroundColor.B),
+            2.0
+        );
 
         Figures.Add(fig);
         SelectedFigure = fig;
@@ -515,11 +515,10 @@ public sealed class MainWindowViewModel : ViewModelBase
             new Geometry.Point(cx - 80, cy + 40),
         };
 
-        var fig = new Polygon(verts)
-        {
-            Color = System.Drawing.Color.FromArgb(ForegroundColor.A, ForegroundColor.R, ForegroundColor.G, ForegroundColor.B),
-            Thickness = 2.0
-        };
+        var fig = new GraphicPolygon(verts,
+            System.Drawing.Color.FromArgb(ForegroundColor.A, ForegroundColor.R, ForegroundColor.G, ForegroundColor.B),
+            2.0
+        );
 
         Figures.Add(fig);
         SelectedFigure = fig;
@@ -531,11 +530,10 @@ public sealed class MainWindowViewModel : ViewModelBase
         var cx = CanvasWidth / 2.0;
         var cy = CanvasHeight / 2.0;
 
-        var fig = new Ellips(new Geometry.Point(cx, cy), 120, 80)
-        {
-            Color = System.Drawing.Color.FromArgb(ForegroundColor.A, ForegroundColor.R, ForegroundColor.G, ForegroundColor.B),
-            Thickness = 2.0
-        };
+        var fig = new GraphicEllipse(new Geometry.Point(cx, cy), 120, 80,
+            System.Drawing.Color.FromArgb(ForegroundColor.A, ForegroundColor.R, ForegroundColor.G, ForegroundColor.B),
+            2.0
+        );
 
         Figures.Add(fig);
         SelectedFigure = fig;
@@ -631,23 +629,21 @@ public sealed class MainWindowViewModel : ViewModelBase
     private void InitializeDemoFigures()
     {
         // Заготовка на базе Geometry.IFigure
-        Figures.Add(new Line(new Geometry.Point(100, 120), new Geometry.Point(360, 180))
-        {
-            Color = System.Drawing.Color.CornflowerBlue,
-            Thickness = 2.0
-        });
+        Figures.Add(new GraphicLine(new Geometry.Point(100, 120), new Geometry.Point(360, 180),
+            System.Drawing.Color.CornflowerBlue,
+            2.0
+        ));
 
-        Figures.Add(new Polygon(new[]
+        Figures.Add(new GraphicPolygon(new[]
         {
             new Geometry.Point(420, 260),
             new Geometry.Point(540, 300),
             new Geometry.Point(520, 380),
             new Geometry.Point(430, 360),
-        })
-        {
-            Color = System.Drawing.Color.OrangeRed,
-            Thickness = 2.0
-        });
+        },
+            System.Drawing.Color.OrangeRed,
+            2.0
+        ));
     }
 
     private async Task<bool> ConfirmLoseChangesIfDirtyAsync()

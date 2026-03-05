@@ -11,9 +11,7 @@ namespace Geometry
 
         public Line(Point a, Point b)
         {
-            VertArray = new Point[2];
-            VertArray.Append(a);
-            VertArray.Append(b);
+            VertArray = new Point[2] { a, b };
 
         }
         public void Scale(double dx, double dy)

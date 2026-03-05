@@ -8,6 +8,7 @@ using Avalonia.Input;
 using Avalonia.Media;
 using Geometry;
 using STP_group_1.ViewModels;
+using UI.Models;
 
 namespace STP_group_1.Views.Controls;
 
@@ -101,11 +102,10 @@ public sealed class GeometryCanvas : Control
                 }
                 else
                 {
-                    var fig = new Line(_lineStart, modelPoint)
-                    {
-                        Color = System.Drawing.Color.FromArgb(vm.ForegroundColor.A, vm.ForegroundColor.R, vm.ForegroundColor.G, vm.ForegroundColor.B),
-                        Thickness = 2.0
-                    };
+                    var fig = new GraphicLine(_lineStart, modelPoint,
+                        System.Drawing.Color.FromArgb(vm.ForegroundColor.A, vm.ForegroundColor.R, vm.ForegroundColor.G, vm.ForegroundColor.B),
+                        2.0
+                    );
                     vm.Figures.Add(fig);
                     vm.SelectedFigure = fig;
                     _lineStart = null;
@@ -129,11 +129,10 @@ public sealed class GeometryCanvas : Control
                 if (point.Properties.IsRightButtonPressed && _polygonPoints.Count >= 3)
                 {
                     var verts = _polygonPoints.ToArray();
-                    var fig = new Polygon(verts)
-                    {
-                        Color = System.Drawing.Color.FromArgb(vm.ForegroundColor.A, vm.ForegroundColor.R, vm.ForegroundColor.G, vm.ForegroundColor.B),
-                        Thickness = 2.0
-                    };
+                    var fig = new GraphicPolygon(verts,
+                        System.Drawing.Color.FromArgb(vm.ForegroundColor.A, vm.ForegroundColor.R, vm.ForegroundColor.G, vm.ForegroundColor.B),
+                        2.0
+                    );
                     vm.Figures.Add(fig);
                     vm.SelectedFigure = fig;
                     _polygonPoints.Clear();
@@ -158,11 +157,10 @@ public sealed class GeometryCanvas : Control
                     if (rx < 1) rx = 1;
                     if (ry < 1) ry = 1;
 
-                    var fig = new Ellips(c, rx, ry)
-                    {
-                        Color = System.Drawing.Color.FromArgb(vm.ForegroundColor.A, vm.ForegroundColor.R, vm.ForegroundColor.G, vm.ForegroundColor.B),
-                        Thickness = 2.0
-                    };
+                    var fig = new GraphicEllipse(c, rx, ry,
+                        System.Drawing.Color.FromArgb(vm.ForegroundColor.A, vm.ForegroundColor.R, vm.ForegroundColor.G, vm.ForegroundColor.B),
+                        2.0
+                    );
                     vm.Figures.Add(fig);
                     vm.SelectedFigure = fig;
                     _ellipseCenter = null;
