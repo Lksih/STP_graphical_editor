@@ -262,16 +262,6 @@ public sealed class MainWindowViewModel : ViewModelBase
     private readonly ObservableAsPropertyHelper<string> _zoomPercentText;
     public string ZoomPercentText => _zoomPercentText.Value;
 
-    // If you ever decide to allow editing ZoomPercentText from UI with parsing,
-    // make it a separate "input" property (string) and parse into ZoomPercent.
-    // Right now your XAML binds Text="{Binding ZoomPercentText}" (TwoWay by default for TextBox),
-    // but this property is computed. It worked in Toolkit only because you had a manual setter.
-    // Чтобы не ломать XAML — см. ниже workaround: отдельная команда ParseZoomTextCommand либо отдельное свойство.
-    // 
-    // На практике лучше в XAML указать Mode=OneWay для ZoomPercentText,
-    // но ты просил не менять стиль окна, поэтому здесь мы оставим computed,
-    // а редактирование текста можно вернуть отдельным "input" свойством при необходимости.
-
     // ---------- Theme ----------
 
     public enum EditorTheme
