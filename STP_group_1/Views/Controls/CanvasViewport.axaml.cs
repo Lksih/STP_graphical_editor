@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using System.Reactive;
+using System.Reactive.Linq;
 
 namespace STP_group_1.Views.Controls;
 
@@ -22,23 +23,23 @@ public partial class CanvasViewport : UserControl
 
     private void OnAttached(object? sender, VisualTreeAttachmentEventArgs e)
     {
-        _scroll = this.FindControl<ScrollViewer>("PART_Scroll");
-        if (_scroll is null)
+//        _scroll = this.FindControl<ScrollViewer>("PART_Scroll");
+        if (PART_Scroll is null)
             return;
 
         AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
         AddHandler(KeyUpEvent, OnKeyUp, RoutingStrategies.Tunnel);
 
         // Zoom (Ctrl + wheel)
-        _scroll.AddHandler(PointerWheelChangedEvent, OnPointerWheelChanged, RoutingStrategies.Tunnel);
+//        PART_Scroll.AddHandler(PointerWheelChangedEvent, OnPointerWheelChanged, RoutingStrategies.Tunnel);
 
         // Pan (Space + drag)
-        _scroll.AddHandler(PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel);
-        _scroll.AddHandler(PointerMovedEvent, OnPointerMoved, RoutingStrategies.Tunnel);
-        _scroll.AddHandler(PointerReleasedEvent, OnPointerReleased, RoutingStrategies.Tunnel);
+        PART_Scroll.AddHandler(PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel);
+        PART_Scroll.AddHandler(PointerMovedEvent, OnPointerMoved, RoutingStrategies.Tunnel);
+        PART_Scroll.AddHandler(PointerReleasedEvent, OnPointerReleased, RoutingStrategies.Tunnel);
     }
 
-    private void OnPointerWheelChanged(object? sender, PointerWheelEventArgs e)
+    private async void OnPointerWheelChanged(object? sender, PointerWheelEventArgs e)
     {
         if (DataContext is not ViewModels.MainWindowViewModel vm)
             return;
@@ -49,9 +50,9 @@ public partial class CanvasViewport : UserControl
         // simple discrete steps: up => +10%, down => -10%
         var delta = e.Delta.Y;
         if (delta > 0)
-            vm.ZoomInCommand.Execute(Unit.Default);
+            await vm.ZoomInCommand.Execute(Unit.Default);
         else if (delta < 0)
-            vm.ZoomOutCommand.Execute(Unit.Default);
+            await vm.ZoomOutCommand.Execute(Unit.Default);
 
         e.Handled = true;
     }

@@ -26,6 +26,14 @@ namespace STP_group_1
 
                 var dialogService = new AvaloniaDialogService(mainWindow);
                 var ioService = new StubEditorIoService();
+                var viewmodel= new MainWindowViewModel(dialogService, ioService);
+
+                viewmodel.PickOpenFile.RegisterHandler(async s =>
+                {
+                    if(s.IsHandled) return;
+                 var res= await dialogService.PickOpenFileAsync(s.Input);
+                 if(res != null) {s.SetOutput(res); return;}
+                });
 
                 mainWindow.DataContext = new MainWindowViewModel(dialogService, ioService);
                 desktop.MainWindow = mainWindow;

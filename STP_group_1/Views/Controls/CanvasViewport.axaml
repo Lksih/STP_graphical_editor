@@ -7,7 +7,8 @@
   <Border Background="{DynamicResource SystemControlBackgroundBaseLowBrush}">
     <ScrollViewer Name="PART_Scroll"
                   HorizontalScrollBarVisibility="Auto"
-                  VerticalScrollBarVisibility="Auto">
+                  VerticalScrollBarVisibility="Auto"
+                  PointerWheelChanged="OnPointerWheelChanged">
       <Border Name="PART_Canvas"
               Width="{Binding CanvasWidthZoomed}"
               Height="{Binding CanvasHeightZoomed}"

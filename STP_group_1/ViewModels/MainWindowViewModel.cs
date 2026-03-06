@@ -30,6 +30,8 @@ public sealed class MainWindowViewModel : ViewModelBase
     private readonly IUiDialogService _dialogs;
     private readonly IEditorIoService _io;
 
+    public Interaction<string[], string> PickOpenFile { get; } = new();
+
     public MainWindowViewModel(IUiDialogService dialogs, IEditorIoService io)
     {
         _dialogs = dialogs;
@@ -133,9 +135,14 @@ public sealed class MainWindowViewModel : ViewModelBase
 
         DeleteLayerCommand = ReactiveCommand.Create(DeleteLayer, canDeleteLayer);
 
+        FigureGP.Connect().Transform(f => f.Item1).Bind(out collection);
+
+
+
+
         InitializeDemoFigures();
     }
-
+    ReadOnlyObservableCollection<IFigure> collection;
     // ---------- Document state ----------
 
     private bool _isDirty;
@@ -145,11 +152,10 @@ public sealed class MainWindowViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _isDirty, value);
     }
 
-    private string? _currentProjectPath;
-    public string? CurrentProjectPath
+        public string? CurrentProjectPath
     {
-        get => _currentProjectPath;
-        set => this.RaiseAndSetIfChanged(ref _currentProjectPath, value);
+        get => field;
+        set => this.RaiseAndSetIfChanged(ref field, value);
     }
 
     // ---------- Canvas ----------
@@ -313,7 +319,8 @@ public sealed class MainWindowViewModel : ViewModelBase
     /// <summary>
     /// Фигуры активного слоя. Для невырбранного слоя возвращается пустая коллекция.
     /// </summary>
-    public ObservableCollection<IFigure> Figures => SelectedLayer?.Figures ?? EmptyFigures;
+    public ReadOnlyObservableCollection<IFigure> Figures => collection;
+    public SourceCache<(IFigure, IGradientBrush), IFigure> FigureGP { get; }  =new(c=>c.Item1);
 
     private IFigure? _selectedFigure;
     public IFigure? SelectedFigure
@@ -387,8 +394,9 @@ public sealed class MainWindowViewModel : ViewModelBase
     {
         if (!await ConfirmLoseChangesIfDirtyAsync())
             return;
+        var path = await PickOpenFile.Handle([".png", ".jpg", ".jpeg"]);
 
-        var path = await _dialogs.PickOpenFileAsync(new[] { ".png", ".jpg", ".jpeg" });
+//        var path = await _dialogs.PickOpenFileAsync(new[] { ".png", ".jpg", ".jpeg" });
         if (path is null)
             return;
 
