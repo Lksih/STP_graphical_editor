@@ -482,10 +482,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         var a = new Geometry.Point(cx - 100, cy);
         var b = new Geometry.Point(cx + 100, cy);
 
-        var fig = new GraphicLine(a, b,
-            System.Drawing.Color.FromArgb(ForegroundColor.A, ForegroundColor.R, ForegroundColor.G, ForegroundColor.B),
-            2.0
-        );
+        var fig = new GraphicLine(a, b, ForegroundColor, 2.0);
 
         Figures.Add(fig);
         SelectedFigure = fig;
@@ -505,10 +502,7 @@ public sealed class MainWindowViewModel : ViewModelBase
             new Geometry.Point(cx - 80, cy + 40),
         };
 
-        var fig = new GraphicPolygon(verts,
-            System.Drawing.Color.FromArgb(ForegroundColor.A, ForegroundColor.R, ForegroundColor.G, ForegroundColor.B),
-            2.0
-        );
+        var fig = new GraphicPolygon(verts, ForegroundColor, 2.0);
 
         Figures.Add(fig);
         SelectedFigure = fig;
@@ -520,10 +514,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         var cx = CanvasWidth / 2.0;
         var cy = CanvasHeight / 2.0;
 
-        var fig = new GraphicEllipse(new Geometry.Point(cx, cy), 120, 80,
-            System.Drawing.Color.FromArgb(ForegroundColor.A, ForegroundColor.R, ForegroundColor.G, ForegroundColor.B),
-            2.0
-        );
+        var fig = new GraphicEllipse(new Geometry.Point(cx, cy), 120, 80, ForegroundColor, 2.0);
 
         Figures.Add(fig);
         SelectedFigure = fig;
@@ -620,7 +611,7 @@ public sealed class MainWindowViewModel : ViewModelBase
     {
         // Заготовка на базе Geometry.IFigure
         Figures.Add(new GraphicLine(new Geometry.Point(100, 120), new Geometry.Point(360, 180),
-            System.Drawing.Color.CornflowerBlue,
+            Colors.CornflowerBlue,
             2.0
         ));
 
@@ -631,7 +622,7 @@ public sealed class MainWindowViewModel : ViewModelBase
             new Geometry.Point(520, 380),
             new Geometry.Point(430, 360),
         },
-            System.Drawing.Color.OrangeRed,
+            Colors.OrangeRed,
             2.0
         ));
     }
