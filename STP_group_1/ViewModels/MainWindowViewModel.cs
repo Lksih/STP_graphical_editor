@@ -25,10 +25,25 @@ public enum ToolKind
     Ellipse,
 }
 
+public enum ActiveColorTarget
+{
+    Foreground,
+    Background
+}
+
+
+
 public sealed class MainWindowViewModel : ViewModelBase
 {
     private readonly IUiDialogService _dialogs;
     private readonly IEditorIoService _io;
+
+    private bool _isColorPickerVisible;
+    public bool IsColorPickerVisible
+    {
+        get => _isColorPickerVisible;
+        set => this.RaiseAndSetIfChanged(ref _isColorPickerVisible, value);
+    }
 
     public MainWindowViewModel(IUiDialogService dialogs, IEditorIoService io)
     {
@@ -83,19 +98,22 @@ public sealed class MainWindowViewModel : ViewModelBase
             .Select(t => t.Item1 * t.Item2)
             .ToProperty(this, x => x.CanvasHeightZoomed, out _canvasHeightZoomed);
 
-        // Track recent colors
         this.WhenAnyValue(x => x.ForegroundColor)
             .Skip(1)
+            .Throttle(TimeSpan.FromMilliseconds(400))
             .Subscribe(PushRecentColor);
 
-        this.WhenAnyValue(x => x.BackgroundColor)
+        this.WhenAnyValue(x => x.CanvasBackground)
             .Skip(1)
+            .Throttle(TimeSpan.FromMilliseconds(400))
             .Subscribe(PushRecentColor);
 
         // Apply theme when it changes
         this.WhenAnyValue(x => x.SelectedTheme)
             .Skip(1)
             .Subscribe(ApplyTheme);
+
+        RecentColors.CollectionChanged += (_, __) => this.RaisePropertyChanged(nameof(HasRecentColors));
 
         // ---- Commands ----
 
@@ -107,15 +125,12 @@ public sealed class MainWindowViewModel : ViewModelBase
         ExportCommand = ReactiveCommand.CreateFromTask(Export);
         ExitCommand = ReactiveCommand.CreateFromTask(Exit);
 
+
         UndoCommand = ReactiveCommand.Create(Undo);
         RedoCommand = ReactiveCommand.Create(Redo);
 
         ZoomInCommand = ReactiveCommand.Create(ZoomIn);
         ZoomOutCommand = ReactiveCommand.Create(ZoomOut);
-
-        SwapColorsCommand = ReactiveCommand.Create(SwapColors);
-        SetForegroundFromRecentCommand = ReactiveCommand.Create<object?>(SetForegroundFromRecent);
-        SetBackgroundFromRecentCommand = ReactiveCommand.Create<object?>(SetBackgroundFromRecent);
 
         DeleteSelectedFigureCommand = ReactiveCommand.Create(DeleteSelectedFigure);
         RotateSelectedFigureCommand = ReactiveCommand.Create(RotateSelectedFigure);
@@ -128,10 +143,14 @@ public sealed class MainWindowViewModel : ViewModelBase
 
         NewLayerCommand = ReactiveCommand.Create(NewLayer);
 
+        SelectActiveColorTargetCommand = ReactiveCommand.Create<string?>(SelectActiveColorTarget);
+
         var canDeleteLayer = this.WhenAnyValue(x => x.SelectedLayer)
             .Select(_ => CanDeleteLayer());
 
         DeleteLayerCommand = ReactiveCommand.Create(DeleteLayer, canDeleteLayer);
+
+        ApplyRecentColorCommand = ReactiveCommand.Create<object?>(ApplyRecentColor);
 
         InitializeDemoFigures();
     }
@@ -201,6 +220,8 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     private readonly ObservableAsPropertyHelper<bool> _isEllipseTool;
     public bool IsEllipseTool => _isEllipseTool.Value;
+    public bool IsForegroundActive => ActiveColorTarget == ActiveColorTarget.Foreground;
+    public bool IsCanvasBackgroundActive => ActiveColorTarget == ActiveColorTarget.Background;
 
     // ---------- Tool properties ----------
 
@@ -209,13 +230,6 @@ public sealed class MainWindowViewModel : ViewModelBase
     {
         get => _foregroundColor;
         set => this.RaiseAndSetIfChanged(ref _foregroundColor, value);
-    }
-
-    private Color _backgroundColor = Colors.White;
-    public Color BackgroundColor
-    {
-        get => _backgroundColor;
-        set => this.RaiseAndSetIfChanged(ref _backgroundColor, value);
     }
 
     private int _brushSize = 16;
@@ -239,7 +253,73 @@ public sealed class MainWindowViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _hardnessPercent, value);
     }
 
+    private ActiveColorTarget _activeColorTarget = ActiveColorTarget.Foreground;
+    public ActiveColorTarget ActiveColorTarget
+    {
+        get => _activeColorTarget;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _activeColorTarget, value);
+            this.RaisePropertyChanged(nameof(ActiveColor));
+            this.RaisePropertyChanged(nameof(IsForegroundActive));
+            this.RaisePropertyChanged(nameof(IsCanvasBackgroundActive));
+        }
+    }
+
+    private void ApplyRecentColor(object? value)
+    {
+        if (value is Color c)
+        {
+            ActiveColor = c;
+            return;
+        }
+
+        if (value is string s)
+        {
+            try
+            {
+                ActiveColor = Color.Parse(s);
+            }
+            catch
+            {
+                // ignore invalid strings
+            }
+        }
+    }
+
+
+    public Color ActiveColor
+    {
+        get => ActiveColorTarget == ActiveColorTarget.Foreground ? ForegroundColor : CanvasBackground;
+        set
+        {
+            if (ActiveColorTarget == ActiveColorTarget.Foreground)
+                ForegroundColor = value;
+            else
+                CanvasBackground = value;
+
+            this.RaisePropertyChanged(nameof(ActiveColor));
+        }
+    }
+
+    private void SelectActiveColorTarget(string? target)
+    {
+        if (!Enum.TryParse<ActiveColorTarget>(target, ignoreCase: true, out var parsed))
+            return;
+
+        if (ActiveColorTarget == parsed)
+        {
+            IsColorPickerVisible = !IsColorPickerVisible;
+            return;
+        }
+
+        ActiveColorTarget = parsed;
+        IsColorPickerVisible = true;
+    }
+
     public ObservableCollection<Color> RecentColors { get; } = new();
+
+    public bool HasRecentColors => RecentColors.Count > 0;
 
     // ---------- Zoom ----------
 
@@ -339,8 +419,6 @@ public sealed class MainWindowViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> ZoomOutCommand { get; }
 
     public ReactiveCommand<Unit, Unit> SwapColorsCommand { get; }
-    public ReactiveCommand<object?, Unit> SetForegroundFromRecentCommand { get; }
-    public ReactiveCommand<object?, Unit> SetBackgroundFromRecentCommand { get; }
 
     public ReactiveCommand<Unit, Unit> DeleteSelectedFigureCommand { get; }
     public ReactiveCommand<Unit, Unit> RotateSelectedFigureCommand { get; }
@@ -354,6 +432,11 @@ public sealed class MainWindowViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> NewLayerCommand { get; }
     public ReactiveCommand<Unit, Unit> DeleteLayerCommand { get; }
 
+    public ReactiveCommand<string?, Unit> SelectActiveColorTargetCommand { get; }
+
+    public ReactiveCommand<object?, Unit> ApplyRecentColorCommand { get; }
+
+
     // ---------- Command handlers ----------
 
     private void SelectTool(string? tool)
@@ -361,6 +444,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         if (Enum.TryParse<ToolKind>(tool, ignoreCase: true, out var parsed))
             SelectedTool = parsed;
     }
+
 
     private async Task New()
     {
@@ -446,10 +530,6 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     private void ZoomOut() => ZoomPercent = Clamp(ZoomPercent - 10, 10, 800);
 
-    private void SwapColors()
-    {
-        (ForegroundColor, BackgroundColor) = (BackgroundColor, ForegroundColor);
-    }
 
     private void DeleteSelectedFigure()
     {
@@ -519,48 +599,6 @@ public sealed class MainWindowViewModel : ViewModelBase
         Figures.Add(fig);
         SelectedFigure = fig;
         IsDirty = true;
-    }
-
-    private void SetForegroundFromRecent(object? value)
-    {
-        if (value is Color c)
-        {
-            ForegroundColor = c;
-            return;
-        }
-
-        if (value is string s)
-        {
-            try
-            {
-                ForegroundColor = Color.Parse(s);
-            }
-            catch
-            {
-                // ignore invalid strings
-            }
-        }
-    }
-
-    private void SetBackgroundFromRecent(object? value)
-    {
-        if (value is Color c)
-        {
-            BackgroundColor = c;
-            return;
-        }
-
-        if (value is string s)
-        {
-            try
-            {
-                BackgroundColor = Color.Parse(s);
-            }
-            catch
-            {
-                // ignore invalid strings
-            }
-        }
     }
 
     private void SelectTheme(string? theme)
@@ -651,7 +689,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         }
 
         RecentColors.Insert(0, color);
-        const int max = 12;
+        const int max = 5;
         while (RecentColors.Count > max)
             RecentColors.RemoveAt(RecentColors.Count - 1);
     }

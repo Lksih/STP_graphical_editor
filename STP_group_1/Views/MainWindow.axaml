@@ -3,6 +3,7 @@
         xmlns:vm="using:STP_group_1.ViewModels"
         xmlns:controls="using:STP_group_1.Views.Controls"
         xmlns:conv="using:STP_group_1.Converters"
+		xmlns:avc="clr-namespace:Avalonia.Controls;assembly=Avalonia.Controls.ColorPicker"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
@@ -63,17 +64,6 @@
         <Border DockPanel.Dock="Top" Background="{DynamicResource SystemControlBackgroundBaseLowBrush}" Padding="8">
             <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
                 <TextBlock Text="{Binding SelectedToolDisplayName}" VerticalAlignment="Center" FontWeight="SemiBold"/>
-
-                <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                    <TextBlock Text="Цвет фигур" VerticalAlignment="Center"/>
-                    <ColorPicker Color="{Binding ForegroundColor}" Width="180"/>
-                </StackPanel>
-
-                <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                    <TextBlock Text="Фон холста" VerticalAlignment="Center"/>
-                    <ColorPicker Color="{Binding CanvasBackground}" Width="180"/>
-                </StackPanel>
-
                 <Separator Width="1" Margin="8,0"/>
 
                 <Button Content="-" Command="{Binding ZoomOutCommand}" />
@@ -147,123 +137,96 @@
             <DockPanel>
                 <!-- Colors -->
                 <StackPanel DockPanel.Dock="Top" Spacing="10">
-                    <TextBlock Text="Colors" FontWeight="SemiBold" />
+					<TextBlock Text="Активные цвета" FontWeight="SemiBold"/>
 
-                    <Grid ColumnDefinitions="Auto,Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
-                        <!-- FG/BG swatches -->
-                        <Border Grid.Row="0" Grid.Column="0" Width="44" Height="44"
-                                CornerRadius="6"
-                                BorderThickness="1"
-                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                                Background="{Binding ForegroundColor, Converter={StaticResource ColorToBrush}}"
-                                ToolTip.Tip="Цвет фигур" />
+					<StackPanel Orientation="Horizontal" Spacing="8">
 
-                        <Border Grid.Row="0" Grid.Column="1" Width="44" Height="44"
-                                CornerRadius="6"
-                                BorderThickness="1"
-                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                                Background="{Binding CanvasBackground, Converter={StaticResource ColorToBrush}}"
-                                ToolTip.Tip="Фон холста" />
+						<Button Width="44"
+                                Height="44"
+                                Padding="0"
+                                ToolTip.Tip="Foreground"
+                                Command="{Binding SelectActiveColorTargetCommand}"
+                                CommandParameter="Foreground">
 
-                        <!-- Recent palette -->
-                        <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Text="Recent" />
-                    </Grid>
+							<Border CornerRadius="6"
+									BorderThickness="1"
+									BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+									Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
 
-                    <ItemsControl ItemsSource="{Binding RecentColors}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <WrapPanel ItemWidth="26" ItemHeight="26" />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border Width="24" Height="24"
-                                        CornerRadius="4"
-                                        BorderThickness="1"
-                                        BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                                        Background="{Binding ., Converter={StaticResource ColorToBrush}}">
-                                    <Border.ContextMenu>
-                                        <ContextMenu>
-                                            <MenuItem Header="Set FG"
-                                                      Command="{Binding $parent[Window].DataContext.SetForegroundFromRecentCommand}"
-                                                      CommandParameter="{Binding .}" />
-                                            <MenuItem Header="Set BG"
-                                                      Command="{Binding $parent[Window].DataContext.SetBackgroundFromRecentCommand}"
-                                                      CommandParameter="{Binding .}" />
-                                        </ContextMenu>
-                                    </Border.ContextMenu>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+								<Border Margin="2"
+										CornerRadius="4"
+										Background="{Binding ForegroundColor, Converter={StaticResource ColorToBrush}}"/>
 
-                    <!-- Fixed palette  -->
-                    <TextBlock Text="Palette" Margin="0,8,0,0" />
-                    <UniformGrid Columns="6" Rows="0" Margin="0,4,0,0">
-                        <!-- basic Photoshop-like row -->
-                        <Button Width="20" Height="20" Margin="2"
-                                Background="#000000"
-                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                                Command="{Binding SetForegroundFromRecentCommand}"
-                                CommandParameter="#000000"/>
-                        <Button Width="20" Height="20" Margin="2"
-                                Background="#808080"
-                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                                Command="{Binding SetForegroundFromRecentCommand}"
-                                CommandParameter="#808080"/>
-                        <Button Width="20" Height="20" Margin="2"
-                                Background="#FFFFFF"
-                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                                Command="{Binding SetForegroundFromRecentCommand}"
-                                CommandParameter="#FFFFFF"/>
-                        <Button Width="20" Height="20" Margin="2"
-                                Background="#FF0000"
-                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                                Command="{Binding SetForegroundFromRecentCommand}"
-                                CommandParameter="#FF0000"/>
-                        <Button Width="20" Height="20" Margin="2"
-                                Background="#00FF00"
-                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                                Command="{Binding SetForegroundFromRecentCommand}"
-                                CommandParameter="#00FF00"/>
-                        <Button Width="20" Height="20" Margin="2"
-                                Background="#0000FF"
-                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                                Command="{Binding SetForegroundFromRecentCommand}"
-                                CommandParameter="#0000FF"/>
+							</Border>
 
-                        <!-- extra row -->
-                        <Button Width="20" Height="20" Margin="2"
-                                Background="#FFFF00"
-                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                                Command="{Binding SetForegroundFromRecentCommand}"
-                                CommandParameter="#FFFF00"/>
-                        <Button Width="20" Height="20" Margin="2"
-                                Background="#FF00FF"
-                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                                Command="{Binding SetForegroundFromRecentCommand}"
-                                CommandParameter="#FF00FF"/>
-                        <Button Width="20" Height="20" Margin="2"
-                                Background="#00FFFF"
-                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                                Command="{Binding SetForegroundFromRecentCommand}"
-                                CommandParameter="#00FFFF"/>
-                        <Button Width="20" Height="20" Margin="2"
-                                Background="#C0C0C0"
-                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                                Command="{Binding SetForegroundFromRecentCommand}"
-                                CommandParameter="#C0C0C0"/>
-                        <Button Width="20" Height="20" Margin="2"
-                                Background="#804000"
-                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                                Command="{Binding SetForegroundFromRecentCommand}"
-                                CommandParameter="#804000"/>
-                        <Button Width="20" Height="20" Margin="2"
-                                Background="#008040"
-                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                                Command="{Binding SetForegroundFromRecentCommand}"
-                                CommandParameter="#008040"/>
-                    </UniformGrid>
+						</Button>
+
+						<Button Width="44"
+                                Height="44"
+                                Padding="0"
+                                ToolTip.Tip="Background"
+                                Command="{Binding SelectActiveColorTargetCommand}"
+                                CommandParameter="Background">
+
+							<Border CornerRadius="6"
+									BorderThickness="1"
+									BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+									Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
+
+								<Border Margin="2"
+										CornerRadius="4"
+										Background="{Binding CanvasBackground, Converter={StaticResource ColorToBrush}}"/>
+
+							</Border>
+
+						</Button>
+
+					</StackPanel>
+
+					<Border Margin="0,6,0,0"
+                            Padding="8"
+                            CornerRadius="8"
+                            BorderThickness="1"
+                            BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                            Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                            IsVisible="{Binding IsColorPickerVisible}">
+
+						<Viewbox Width="210"
+								 Height="235"
+								 Stretch="Uniform">
+							<avc:ColorView Color="{Binding ActiveColor}"
+										   ColorSpectrumShape="Ring"
+										   Width="340"
+										   Height="380"/>
+						</Viewbox>
+
+					</Border>
+
+
+					<TextBlock Text="Предыдущие цвета"
+                               FontWeight="SemiBold"
+                               IsVisible="{Binding HasRecentColors}" />
+					<ItemsControl ItemsSource="{Binding RecentColors}"
+								  IsVisible="{Binding HasRecentColors}">
+						<ItemsControl.ItemsPanel>
+							<ItemsPanelTemplate>
+								<WrapPanel ItemWidth="26" ItemHeight="26" />
+							</ItemsPanelTemplate>
+						</ItemsControl.ItemsPanel>
+						<ItemsControl.ItemTemplate>
+							<DataTemplate>
+								<Button Width="24"
+										Height="24"
+										Padding="0"
+										CornerRadius="4"
+										BorderThickness="1"
+										BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+										Background="{Binding ., Converter={StaticResource ColorToBrush}}"
+										Command="{Binding $parent[Window].DataContext.ApplyRecentColorCommand}"
+										CommandParameter="{Binding .}" />
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
 
                     <Separator/>
                 </StackPanel>
@@ -271,7 +234,7 @@
                 <!-- Layers -->
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8">
-                        <TextBlock Text="Layers" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <TextBlock Text="Слои" FontWeight="SemiBold" VerticalAlignment="Center"/>
                         <Button Content="+" ToolTip.Tip="New layer" Command="{Binding NewLayerCommand}" />
                         <Button Content="🗑" ToolTip.Tip="Delete layer" Command="{Binding DeleteLayerCommand}" />
                     </StackPanel>
