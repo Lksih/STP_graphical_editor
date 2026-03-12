@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="Geometry/Geometry.csproj" Id="24783bd0-77de-4542-bea1-30f9b7d61f73" />
+  <Project Path="InputOutput/InputOutput.csproj" Id="727ee692-6894-46a1-8fdb-65a3583a2044" />
+  <Project Path="STP_group_1/UI.csproj" />
+  <Project Path="TestProject/TestProject.csproj" Id="d67ae8fa-8b0d-458e-9762-3ddac8a11fcd" />
+</Solution>
