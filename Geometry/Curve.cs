@@ -71,58 +71,83 @@ namespace Geometry
             Center.Multiply(1 / VertList.Count());
         }
         public IEnumerable<IDrawFigure> Draw() => throw new NullReferenceException();
-        public bool IsIn(Point p, double eps)
+        public bool IsIn(Point p, double eps) // через аппроксимацию отрезками
         {
-            throw new NullReferenceException();
-            /*if (eps < 0)
-            throw new IncorrectInaccuracyParameter();
-            for (int i = 0; i < VertList.Count - 1; i++)
-                {
-                    if (VertList[i].X == VertList[i + 1].X)
-                    {
-                    if (Math.Abs(p.X - VertList[i].X) <= eps && 
-                    Math.Min(VertList[i].Y, VertList[i + 1].Y) - eps <= p.Y && 
-                    p.Y <= Math.Max(VertList[i].Y, VertList[i + 1].Y) - eps)
-                        return true;
-                    }
-                    else if (VertList[i].Y == Vertex[1].Y)
-                    {
-                    if (Math.Abs(p.Y - VertList[i].Y) <= eps && 
-                    Math.Min(VertList[i].X, VertList[i + 1].X) - eps <= p.X && 
-                    p.X <= Math.Max(VertList[i].X, VertList[i + 1].X) - eps)
-                        return true;
-                    }
-                    else
-                    {
-                    double t1 = (p.X - VertList[i].X) / (VertList[i + 1].X - VertList[i].X), 
-                    t2 = (p.Y - VertList[i].Y) / (VertList[i + 1].Y - VertList[i].Y), 
-                    lenght = Math.Sqrt(Math.Pow(VertList[i].X - VertList[i + 1].X, 2) + Math.Pow(VertList[i].Y - VertList[i + 1].Y, 2));
-                    if (Math.Abs(t1 - t2) * lenght <= 2 * eps && 
-                    (Math.Max(t2, t1) - 1) * lenght <= eps && 
-                    Math.Min(t2, t1) * lenght >= -eps)
-                        return true;
-                    }
-                }
-                if (VertList[0].X == VertList[VertList.Count() - 1].X)
-                    {
-                    return Math.Abs(p.X - VertList[0].X) <= eps && 
-                    Math.Min(VertList[0].Y, VertList[VertList.Count() - 1].Y) - eps <= p.Y && 
-                    p.Y <= Math.Max(VertList[0].Y, VertList[VertList.Count() - 1].Y) - eps;
-                    }
-                    else if (VertList[0].Y == Vertex[VertList.Count() - 1].Y)
-                    {
-                    return Math.Abs(p.Y - VertList[0].Y) <= eps && 
-                    Math.Min(VertList[0].X, VertList[VertList.Count() - 1].X) - eps <= p.X && 
-                    p.X <= Math.Max(VertList[0].X, VertList[VertList.Count() - 1].X) - eps;
-                    }
-                    else
-                    {
-                    double t1 = (p.X - VertList[0].X) / (VertList[VertList.Count() - 1].X - VertList[0].X), 
-                    t2 = (p.Y - VertList[0].Y) / (VertList[VertList.Count() - 1].Y - VertList[0].Y), 
-                    lenght = Math.Sqrt(Math.Pow(VertList[0].X - VertList[VertList.Count() - 1].X, 2) + Math.Pow(VertList[0].Y - VertList[VertList.Count() - 1].Y, 2));
-                    return Math.Abs(t1 - t2) * lenght <= 2 * eps && 
-                    (Math.Max(t2, t1) - 1) * lenght <= eps && Math.Min(t2, t1) * lenght >= -eps;
-                    }*/
+            if (eps < 0)
+                throw new IncorrectInaccuracyParameter();
+
+            
+            Point p0 = VertList[0];
+            Point p1 = VertList[1];
+            Point p2 = VertList[2];
+
+            
+            foreach (var v in VertList)
+            {
+                double dx0 = p.X - v.X;
+                double dy0 = p.Y - v.Y;
+                if (Math.Sqrt(dx0 * dx0 + dy0 * dy0) <= eps)
+                    return true;
+            }
+
+            
+            double len01 = Math.Sqrt(Math.Pow(p1.X - p0.X, 2) + Math.Pow(p1.Y - p0.Y, 2));
+            double len12 = Math.Sqrt(Math.Pow(p2.X - p1.X, 2) + Math.Pow(p2.Y - p1.Y, 2));
+            double approxLen = len01 + len12;
+
+            int segments = (int)(approxLen / (eps > 0 ? eps : 1e-6));
+            if (segments < 8) segments = 8;
+            if (segments > 256) segments = 256;
+
+            
+            Point prev = p0;
+            for (int i = 1; i <= segments; i++)
+            {
+                double t = (double)i / segments;
+                double oneMinusT = 1.0 - t;
+
+                Point curr = new Point(
+                    oneMinusT * oneMinusT * p0.X + 2 * oneMinusT * t * p1.X + t * t * p2.X,
+                    oneMinusT * oneMinusT * p0.Y + 2 * oneMinusT * t * p1.Y + t * t * p2.Y
+                );
+
+                if (IsPointNearSegment(p, prev, curr, eps))
+                    return true;
+
+                prev = curr;
+            }
+
+            return false;
+        }
+
+        private static bool IsPointNearSegment(Point p, Point a, Point b, double eps)
+        {
+            
+
+            
+            if (a.X == b.X)
+            {
+                return Math.Abs(p.X - a.X) <= eps &&
+                       Math.Min(a.Y, b.Y) - eps <= p.Y &&
+                       p.Y <= Math.Max(a.Y, b.Y) + eps;
+            }
+            
+            else if (a.Y == b.Y)
+            {
+                return Math.Abs(p.Y - a.Y) <= eps &&
+                       Math.Min(a.X, b.X) - eps <= p.X &&
+                       p.X <= Math.Max(a.X, b.X) + eps;
+            }
+            else
+            {
+                double t1 = (p.X - a.X) / (b.X - a.X);
+                double t2 = (p.Y - a.Y) / (b.Y - a.Y);
+                double lenght = Math.Sqrt(Math.Pow(a.X - b.X, 2) + Math.Pow(a.Y - b.Y, 2));
+
+                return Math.Abs(t1 - t2) * lenght <= 2 * eps &&
+                       (Math.Max(t2, t1) - 1) * lenght <= eps &&
+                       Math.Min(t2, t1) * lenght >= -eps;
+            }
         }
     }
 }
