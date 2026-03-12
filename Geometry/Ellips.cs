@@ -48,7 +48,10 @@ namespace Geometry
             if (eps < 0)
             throw new IncorrectInaccuracyParameter();
             Point dst = p - Center;
-            double angle = Math.Atan2(dst.X, dst.Y) - Angle, r = Rx*Ry / Math.Sqrt(Math.Pow(Ry * Math.Cos(angle), 2) + Math.Pow(Rx * Math.Sin(angle), 2)), 
+            double x = dst.X * Math.Cos(-Angle) - dst.Y * Math.Sin(-Angle),
+                y = dst.X * Math.Sin(-Angle) + dst.Y * Math.Cos(-Angle);
+            dst = new Point(x, y);
+            double angle = Math.Atan2(dst.X, dst.Y), r = Rx*Ry / Math.Sqrt(Math.Pow(Ry * Math.Cos(angle), 2) + Math.Pow(Rx * Math.Sin(angle), 2)), 
             distance = Math.Sqrt(Math.Pow(dst.X, 2) + Math.Pow(dst.Y, 2));
             return distance <= r + eps;
         }
