@@ -38,12 +38,9 @@ namespace Geometry
         {
             for (int i = 0; i < VertArray.Length; i++)
             {
-                Point vert = VertArray[i];
-                double tx = vert.X - Center.X, ty = vert.Y - Center.Y, 
-                currAngle = Math.Atan2(ty, tx), distance = Math.Sqrt(Math.Pow(tx, 2) + Math.Pow(ty, 2));
-                Point d = new Point(Math.Cos(angle + currAngle), Math.Sin(angle + currAngle));
-                d *= distance;
-                VertArray[i] = Center + d;
+                double x = VertArray[i].X * Math.Cos(angle) - VertArray[i].Y * Math.Sin(angle),
+                y = VertArray[i].X * Math.Sin(angle) + VertArray[i].Y * Math.Cos(angle);
+                VertArray[i] = new Point(x, y);
             }
         }
         public void Move(double dx, double dy)
