@@ -6,83 +6,84 @@ namespace Geometry
     public class Curve : IFigure
     {
         public Point Center { get; private set;}
-        public ReadOnlySpan<Point> Vertex { get => CollectionsMarshal.AsSpan(VertList); }
-        private List<Point> VertList;
+        public ReadOnlySpan<Point> Vertex { get => VertArray; }
+        private Point[] VertArray;
 
         public Curve(ReadOnlySpan<Point> Verts)
         {
-            if (Verts.ToArray().Count() != 3)
+            if (Verts.Length != 3)
             throw new IncorrectVertexSpan("Кривая должна задаваться 3-мя вершинами");
             Center = new Point(0, 0);
-            VertList = [.. Verts];
-            foreach (var vert in VertList)
-                Center.Addition(vert);
-            Center.Multiply(1 / VertList.Count());
+            VertArray = [.. Verts];
+            foreach (var vert in VertArray)
+                Center += vert;
+            Center *= 1 / VertArray.Length;
         }
         public void Scale(double dx, double dy)
         {
             if (dx == 0 || dy == 0)
             throw new IncorrectScaleParameter();
-            for (int i = 0; i < VertList.Count(); i++)
+            for (int i = 0; i < VertArray.Length; i++)
             {
-                Point dist = VertList[i] - Center;
+                Point dist = VertArray[i] - Center;
                 dist.X *= dx;
                 dist.Y *= dy;
-                VertList[i] = Center + dist;
+                VertArray[i] = Center + dist;
             }
         }
         public void RadialScale(double dr)
         {
             if (dr == 0)
             throw new IncorrectScaleParameter();
-            for (int i = 0; i < VertList.Count(); i++)
+            for (int i = 0; i < VertArray.Length; i++)
             {
-                VertList[i] = Center + (VertList[i] - Center) * dr;
+                VertArray[i] = Center + (VertArray[i] - Center) * dr;
             }
         }
         public void Rotate(double angle)
         {
-            for (int i = 0; i < VertList.Count(); i++)
+            for (int i = 0; i < VertArray.Length; i++)
             {
-                Point vert = VertList[i];
+                Point vert = VertArray[i];
                 double tx = vert.X - Center.X, 
                 ty = vert.Y - Center.Y, 
                 currAngle = Math.Atan2(ty, tx), 
                 distance = Math.Sqrt(Math.Pow(tx, 2) + Math.Pow(ty, 2));
                 Point d = new Point(Math.Cos(angle + currAngle), Math.Sin(angle + currAngle));
-                d.Multiply(distance);
-                VertList[i] = Center + d;
+                d *= distance;
+                VertArray[i] = Center + d;
             }
         }
         public void Move(double dx, double dy)
         {
             Point d = new Point(dx, dy);
-            for (int i = 0; i < VertList.Count(); i++)
-                VertList[i].Addition(d);
-            Center.Addition(d);
+            for (int i = 0; i < VertArray.Length; i++)
+                VertArray[i] += d;
+            Center += d;
         }
         public void UpdateVertex(ReadOnlySpan<Point> NewVertex)
         {
-            if (NewVertex.ToArray().Count() != 3)
+            if (NewVertex.Length != 3)
             throw new IncorrectVertexSpan("Кривая должна задаваться 3-мя вершинами");
-            VertList = [.. NewVertex];
-            foreach (var vert in VertList)
-                Center.Addition(vert);
-            Center.Multiply(1 / VertList.Count());
+            VertArray = [.. NewVertex];
+            Center = new Point(0, 0);
+            foreach (var vert in VertArray)
+                Center += vert;
+            Center *= 1 / VertArray.Length;
         }
-        public IEnumerable<IDrawFigure> Draw() => throw new NullReferenceException();
+        public IEnumerable<IDrawFigure> Draw() => throw new NotImplementedException();
         public bool IsIn(Point p, double eps) // через аппроксимацию отрезками
         {
             if (eps < 0)
                 throw new IncorrectInaccuracyParameter();
 
             
-            Point p0 = VertList[0];
-            Point p1 = VertList[1];
-            Point p2 = VertList[2];
+            Point p0 = VertArray[0];
+            Point p1 = VertArray[1];
+            Point p2 = VertArray[2];
 
             
-            foreach (var v in VertList)
+            foreach (var v in VertArray)
             {
                 double dx0 = p.X - v.X;
                 double dy0 = p.Y - v.Y;

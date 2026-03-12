@@ -11,16 +11,13 @@ namespace Geometry
 
         public Line(Point a, Point b)
         {
-            VertArray = new Point[2];
-            VertArray.Append(a);
-            VertArray.Append(b);
-
+            VertArray = [a, b];
         }
         public void Scale(double dx, double dy)
         {
             if (dx == 0 || dy == 0)
             throw new IncorrectScaleParameter();
-            for (int i = 0; i < VertArray.Count(); i++)
+            for (int i = 0; i < VertArray.Length; i++)
             {
                 Point dist = VertArray[i] - Center;
                 dist.X *= dx;
@@ -32,37 +29,36 @@ namespace Geometry
         {
             if (dr == 0)
             throw new IncorrectScaleParameter();
-            for (int i = 0; i < VertArray.Count(); i++)
+            for (int i = 0; i < VertArray.Length; i++)
             {
                 VertArray[i] = Center + (VertArray[i] - Center) * dr;
             }
         }
         public void Rotate(double angle)
         {
-            for (int i = 0; i < VertArray.Count(); i++)
+            for (int i = 0; i < VertArray.Length; i++)
             {
                 Point vert = VertArray[i];
                 double tx = vert.X - Center.X, ty = vert.Y - Center.Y, 
                 currAngle = Math.Atan2(ty, tx), distance = Math.Sqrt(Math.Pow(tx, 2) + Math.Pow(ty, 2));
                 Point d = new Point(Math.Cos(angle + currAngle), Math.Sin(angle + currAngle));
-                d.Multiply(distance);
+                d *= distance;
                 VertArray[i] = Center + d;
             }
         }
         public void Move(double dx, double dy)
         {
             Point d = new Point(dx, dy);
-            for (int i = 0; i < VertArray.Count(); i++)
-                VertArray[i].Addition(d);
-            Center.Addition(d);
+            for (int i = 0; i < VertArray.Length; i++)
+                VertArray[i]+=d;
         }
         public void UpdateVertex(ReadOnlySpan<Point> NewVertex)
         {
-            if (NewVertex.ToArray().Count() != 2)
-            throw new IncorrectVertexSpan("Количество точек линии должно равняться 2-м");
+            if (NewVertex.Length != 2)
+            throw new IncorrectVertexSpan("Линия должна задаваться 2-мя точками");
             VertArray = NewVertex.ToArray();
         }
-        public IEnumerable<IDrawFigure> Draw() => throw new NullReferenceException();
+        public IEnumerable<IDrawFigure> Draw() => throw new NotImplementedException();
         public bool IsIn(Point p, double eps)
         {
             if (eps < 0)

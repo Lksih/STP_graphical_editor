@@ -35,10 +35,14 @@ namespace Geometry
         public void Move(double dx, double dy)
         {
             Point d = new Point(dx, dy);
-            Center.Addition(d);
+            Center += d;
         }
-        public void UpdateVertex(ReadOnlySpan<Point> NewVertex) => throw new IncorrectVertexSpan("Эллипс не имеет вершин");
-        public IEnumerable<IDrawFigure> Draw() => throw new NullReferenceException();
+        public void UpdateVertex(ReadOnlySpan<Point> NewVertex)
+        {
+            if (!NewVertex.IsEmpty)
+            throw new IncorrectVertexSpan("Эллипс не имеет вершин");
+        }
+        public IEnumerable<IDrawFigure> Draw() => throw new NotImplementedException();
         public bool IsIn(Point p, double eps)
         {
             if (eps < 0)
