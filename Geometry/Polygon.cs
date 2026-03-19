@@ -6,13 +6,13 @@ namespace Geometry
     public class Polygon : IFigure
     {
         public Point Center { get; private set;}
-        public ReadOnlySpan<Point> Vertex { get => VertArray; }
+        public ReadOnlySpan<Point> Vertex => VertArray; //Полигон задаётся этим полем
         private Point[] VertArray;
 
-        public Polygon(ReadOnlySpan<Point> Verts)
+        public Polygon(ReadOnlySpan<Point> Verts) //Оно же используется для создания класса
         {
-            if (Verts.Length < 3)
-            throw new IncorrectVertexSpan("Количество точек в фигуре должно быть  не меньше 3-х");
+            if (Verts.Length < 3) //Точек в спане должно быть 3 или больше
+            throw new IncorrectVertexSpan("Количество точек в фигуре должно быть  не меньше 3-х"); 
             Center = new Point(0, 0);
             VertArray = [.. Verts];
             foreach (var vert in VertArray)
@@ -71,6 +71,7 @@ namespace Geometry
         {
             if (eps < 0)
             throw new IncorrectInaccuracyParameter();
+
             double sgn = 0, sgn2 = 0, summ = 0;
             Point dif1 = VertArray[0] - p, dif2 = VertArray[VertArray.Length - 1] - p;
             if (dif1.X == 0 && dif1.Y == 0 || dif2.X == 0 && dif2.Y == 0)
@@ -101,56 +102,51 @@ namespace Geometry
                 summ += angle;
             }
             
-            if (Math.Round(summ, 14) == Math.Round(Math.PI, 14))
+            if (Math.Round(summ, 10) == Math.Round(2 * Math.PI, 10))
                 return true;
             else
             {
-                for (int i = 0; i < VertArray.Length - 1; i++)
+                Point difpa, difpb, difba;
+                double normpa, normpb, normba, cs1, cs2, p_geron, s, h;
+                for (int i = 0; i < Vertex.Length - 1; i++)
                 {
-                    if (VertArray[i].X == VertArray[i + 1].X)
-                    {
-                    if (Math.Abs(p.X - VertArray[i].X) <= eps && 
-                    Math.Min(VertArray[i].Y, VertArray[i + 1].Y) - eps <= p.Y && 
-                    p.Y <= Math.Max(VertArray[i].Y, VertArray[i + 1].Y) - eps)
+                    difpa = p - Vertex[i]; difpb = p - Vertex[i + 1];
+                    normpa = Math.Sqrt((Math.Pow(difpa.X, 2) + Math.Pow(difpa.Y, 2)));
+                    normpb = Math.Sqrt((Math.Pow(difpb.X, 2) + Math.Pow(difpb.Y, 2)));
+                    if (normpa <= eps || normpb <= eps)
                         return true;
-                    }
-                    else if (VertArray[i].Y == VertArray[1].Y)
-                    {
-                    if (Math.Abs(p.Y - VertArray[i].Y) <= eps && 
-                    Math.Min(VertArray[i].X, VertArray[i + 1].X) - eps <= p.X && 
-                    p.X <= Math.Max(VertArray[i].X, VertArray[i + 1].X) - eps)
+            
+                    difba = Vertex[i + 1] - Vertex[i];
+                    normba = Math.Sqrt(Math.Pow(difba.X, 2) + Math.Pow(difba.Y, 2));
+                    cs1 = (difpa.X * difba.Y + difpa.Y * difba.X) / (normpa*normba); 
+                    cs2 = (difpb.X * (-difba.Y) + difpb.Y * (-difba.X)) / (normpb*normba);
+                    if (cs1 >= 0 || cs2 >= 0)
+                        continue;
+            
+                    p_geron = (normpa + normpb + normba) / 2;
+                    s = Math.Sqrt(p_geron * (p_geron - normba)*(p_geron - normpa) * (p_geron - normpb));
+                    h = 2 * s / normba;
+                    if (h <= eps)
                         return true;
-                    }
-                    else
-                    {
-                    double t1 = (p.X -VertArray[i].X) / (VertArray[i + 1].X - VertArray[i].X), 
-                    t2 = (p.Y - VertArray[i].Y) / (VertArray[i + 1].Y - VertArray[i].Y), 
-                    lenght = Math.Sqrt(Math.Pow(VertArray[i].X - VertArray[i + 1].X, 2) + Math.Pow(VertArray[i].Y - VertArray[i + 1].Y, 2));
-                    if (Math.Abs(t1 - t2) * lenght <= 2 * eps && (Math.Max(t2, t1) - 1) * lenght <= eps && Math.Min(t2, t1) * lenght >= -eps)
-                        return true;
-                    }
                 }
-                if (VertArray[0].X == VertArray[VertArray.Length - 1].X)
-                    {
-                    return Math.Abs(p.X - VertArray[0].X) <= eps && 
-                    Math.Min(VertArray[0].Y, VertArray[VertArray.Length - 1].Y) - eps <= p.Y && 
-                    p.Y <= Math.Max(VertArray[0].Y, VertArray[VertArray.Length - 1].Y) - eps;
-                    }
-                    else if (VertArray[0].Y == Vertex[VertArray.Length - 1].Y)
-                    {
-                    return Math.Abs(p.Y - VertArray[0].Y) <= eps && 
-                    Math.Min(VertArray[0].X, VertArray[VertArray.Length - 1].X) - eps <= p.X && 
-                    p.X <= Math.Max(VertArray[0].X, VertArray[VertArray.Length - 1].X) - eps;
-                    }
-                    else
-                    {
-                    double t1 = (p.X - VertArray[0].X) / (VertArray[VertArray.Length - 1].X - VertArray[0].X), 
-                    t2 = (p.Y - VertArray[0].Y) / (VertArray[VertArray.Length - 1].Y - VertArray[0].Y), 
-                    lenght = Math.Sqrt(Math.Pow(VertArray[0].X - VertArray[VertArray.Length - 1].X, 2) + 
-                    Math.Pow(VertArray[0].Y - VertArray[VertArray.Length - 1].Y, 2));
-                    return Math.Abs(t1 - t2) * lenght <= 2 * eps && 
-                    (Math.Max(t2, t1) - 1) * lenght <= eps && Math.Min(t2, t1) * lenght >= -eps;
-                    }
+
+                difpa = p - Vertex[0]; difpb = p - Vertex[Vertex.Length - 1];
+                normpa = Math.Sqrt((Math.Pow(difpa.X, 2) + Math.Pow(difpa.Y, 2)));
+                normpb = Math.Sqrt((Math.Pow(difpb.X, 2) + Math.Pow(difpb.Y, 2)));
+                if (normpa <= eps || normpb <= eps)
+                    return true;
+            
+                difba = Vertex[Vertex.Length - 1] - Vertex[0];
+                normba = Math.Sqrt(Math.Pow(difba.X, 2) + Math.Pow(difba.Y, 2));
+                cs1 = (difpa.X * difba.Y + difpa.Y * difba.X) / (normpa*normba);
+                cs2 = (difpb.X * (-difba.Y) + difpb.Y * (-difba.X)) / (normpb*normba);
+                if (cs1 >= 0 || cs2 >= 0)
+                    return false;
+            
+                p_geron = (normpa + normpb + normba) / 2;
+                s = Math.Sqrt(p_geron * (p_geron - normba)*(p_geron - normpa) * (p_geron - normpb));
+                h = 2 * s / normba;
+                return h <= eps;
             }
         }
     }

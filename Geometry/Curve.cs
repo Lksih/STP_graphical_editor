@@ -6,12 +6,12 @@ namespace Geometry
     public class Curve : IFigure
     {
         public Point Center { get; private set;}
-        public ReadOnlySpan<Point> Vertex { get => VertArray; }
+        public ReadOnlySpan<Point> Vertex => VertArray; //Кривая задаётся этим полем
         private Point[] VertArray;
 
-        public Curve(ReadOnlySpan<Point> Verts)
+        public Curve(ReadOnlySpan<Point> Verts) //Экземпляр класса тоже вызывается им
         {
-            if (Verts.Length != 3)
+            if (Verts.Length != 3) //В спане должно быть ровно 3 точки
             throw new IncorrectVertexSpan("Кривая должна задаваться 3-мя вершинами");
             Center = new Point(0, 0);
             VertArray = [.. Verts];
@@ -118,32 +118,26 @@ namespace Geometry
 
         private static bool IsPointNearSegment(Point p, Point a, Point b, double eps)
         {
-            
+            if (eps < 0)
+            throw new IncorrectInaccuracyParameter();
 
+            Point difpa = p - a, difpb = p - b;
+            double normpa = Math.Sqrt((Math.Pow(difpa.X, 2) + Math.Pow(difpa.Y, 2))),
+            normpb = Math.Sqrt((Math.Pow(difpb.X, 2) + Math.Pow(difpb.Y, 2)));
+            if (normpa <= eps || normpb <= eps)
+                return true;
             
-            if (a.X == b.X)
-            {
-                return Math.Abs(p.X - a.X) <= eps &&
-                       Math.Min(a.Y, b.Y) - eps <= p.Y &&
-                       p.Y <= Math.Max(a.Y, b.Y) + eps;
-            }
+            Point difba = b - a;
+            double normba = Math.Sqrt(Math.Pow(difba.X, 2) + Math.Pow(difba.Y, 2)), 
+            cs1 = (difpa.X * difba.Y + difpa.Y * difba.X) / (normpa*normba), 
+            cs2 = (difpb.X * (-difba.Y) + difpb.Y * (-difba.X)) / (normpb*normba);
+            if (cs1 >= 0 || cs2 >= 0)
+                return false;
             
-            else if (a.Y == b.Y)
-            {
-                return Math.Abs(p.Y - a.Y) <= eps &&
-                       Math.Min(a.X, b.X) - eps <= p.X &&
-                       p.X <= Math.Max(a.X, b.X) + eps;
-            }
-            else
-            {
-                double t1 = (p.X - a.X) / (b.X - a.X);
-                double t2 = (p.Y - a.Y) / (b.Y - a.Y);
-                double lenght = Math.Sqrt(Math.Pow(a.X - b.X, 2) + Math.Pow(a.Y - b.Y, 2));
-
-                return Math.Abs(t1 - t2) * lenght <= 2 * eps &&
-                       (Math.Max(t2, t1) - 1) * lenght <= eps &&
-                       Math.Min(t2, t1) * lenght >= -eps;
-            }
+            double p_geron = (normpa + normpb + normba) / 2,
+            s = Math.Sqrt(p_geron * (p_geron - normba)*(p_geron - normpa) * (p_geron - normpb)),
+            h = 2 * s / normba;
+            return h <= eps;
         }
     }
 }
