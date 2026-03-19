@@ -2,13 +2,13 @@ using System.Numerics;
 
 namespace Geometry
 {
-    public class Ellips : IFigure
+    public class Ellipse : IFigure
     {
         public Point Center { get; set;} //Эллипс задаётся своим центром
         public ReadOnlySpan<Point> Vertex => []; 
         double Rx, Ry, Angle; //А также радиусами по X и Y
 
-        public Ellips(Point c, double rx, double ry) //Соответственно, одна точка и два числа
+        public Ellipse(Point c, double rx, double ry) //Соответственно, одна точка и два числа
         {
             Center = c;
             Rx = rx;
