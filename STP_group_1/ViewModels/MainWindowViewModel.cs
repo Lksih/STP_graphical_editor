@@ -632,6 +632,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         if (SelectedFigure is null)
             return;
 
+        CurrentLayerFiguresGraphicProperties.Remove(SelectedFigure);
         CurrentLayerFigures.Remove(SelectedFigure);
         SelectedFigure = null;
         IsDirty = true;
@@ -661,8 +662,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         var fig = new Line(a, b);
         var figGraphicProperties = new FigureGraphicProperties(ForegroundColor, 2.0);
 
-        CurrentLayerFigures.Add(fig);
-        CurrentLayerFiguresGraphicProperties[fig] = figGraphicProperties;
+        AddFigureToCurrentLayer(fig, figGraphicProperties);
         SelectedFigure = fig;
         IsDirty = true;
     }
@@ -683,8 +683,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         var fig = new Polygon(verts);
         var figGraphicProperties = new FigureGraphicProperties(ForegroundColor, 2.0);
 
-        CurrentLayerFigures.Add(fig);
-        CurrentLayerFiguresGraphicProperties[fig] = figGraphicProperties;
+        AddFigureToCurrentLayer(fig, figGraphicProperties);
         SelectedFigure = fig;
         IsDirty = true;
     }
@@ -697,8 +696,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         var fig = new Ellipse(new Geometry.Point(cx, cy), 120, 80);
         var figGraphicProperties = new FigureGraphicProperties(ForegroundColor, 2.0);
 
-        CurrentLayerFigures.Add(fig);
-        CurrentLayerFiguresGraphicProperties[fig] = figGraphicProperties;
+        AddFigureToCurrentLayer(fig, figGraphicProperties);
         SelectedFigure = fig;
         IsDirty = true;
     }
@@ -777,8 +775,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
                 else
                 {
                     var fig = new Line(_lineStart, modelPoint);
-                    CurrentLayerFigures.Add(fig);
-                    CurrentLayerFiguresGraphicProperties[fig] = new FigureGraphicProperties(ForegroundColor, 2.0);
+                    AddFigureToCurrentLayer(fig, new FigureGraphicProperties(ForegroundColor, 2.0));
                     SelectedFigure = fig;
                     _lineStart = null;
                     IsDirty = true;
@@ -799,8 +796,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
                 {
                     var verts = _polygonPoints.ToArray();
                     var fig = new Polygon(verts);
-                    CurrentLayerFigures.Add(fig);
-                    CurrentLayerFiguresGraphicProperties[fig] = new FigureGraphicProperties(ForegroundColor, 2.0);
+                    AddFigureToCurrentLayer(fig, new FigureGraphicProperties(ForegroundColor, 2.0));
                     SelectedFigure = fig;
                     _polygonPoints.Clear();
                     IsDirty = true;
@@ -823,8 +819,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
                     if (ry < 1) ry = 1;
 
                     var fig = new Ellipse(c, rx, ry);
-                    CurrentLayerFigures.Add(fig);
-                    CurrentLayerFiguresGraphicProperties[fig] = new FigureGraphicProperties(ForegroundColor, 2.0);
+                    AddFigureToCurrentLayer(fig, new FigureGraphicProperties(ForegroundColor, 2.0));
                     SelectedFigure = fig;
                     _ellipseCenter = null;
                     IsDirty = true;
@@ -849,7 +844,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         {
             if (CurrentLayerFigures.Contains(hit))
             {
-                CurrentLayerFigures.Remove(hit);
+                RemoveFigureFromCurrentLayer(hit);
                 if (ReferenceEquals(SelectedFigure, hit))
                     SelectedFigure = null;
                 IsDirty = true;
@@ -881,8 +876,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
     {
         // Заготовка на базе Geometry.IFigure
         var line = new Line(new Geometry.Point(100, 120), new Geometry.Point(360, 180));
-        CurrentLayerFigures.Add(line);
-        CurrentLayerFiguresGraphicProperties[line] = new FigureGraphicProperties(Colors.CornflowerBlue, 2.0);
+        AddFigureToCurrentLayer(line, new FigureGraphicProperties(Colors.CornflowerBlue, 2.0));
 
         var polygon = new Polygon(new[]
         {
@@ -891,8 +885,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
             new Geometry.Point(520, 380),
             new Geometry.Point(430, 360),
         });
-        CurrentLayerFigures.Add(polygon);
-        CurrentLayerFiguresGraphicProperties[polygon] = new FigureGraphicProperties(Colors.Yellow, 2.0);
+        AddFigureToCurrentLayer(polygon, new FigureGraphicProperties(Colors.Yellow, 2.0));
 
         var polygon2 = new Polygon(new[]
         {
@@ -901,8 +894,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
             new Geometry.Point(570, 380),
             new Geometry.Point(480, 360),
         });
-        CurrentLayerFigures.Add(polygon2);
-        CurrentLayerFiguresGraphicProperties[polygon2] = new FigureGraphicProperties(Colors.Red, 2.0);
+        AddFigureToCurrentLayer(polygon2, new FigureGraphicProperties(Colors.Red, 2.0));
     }
 
     private async Task<bool> ConfirmLoseChangesIfDirtyAsync()
@@ -916,6 +908,18 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
     }
 
     private static int Clamp(int v, int min, int max) => v < min ? min : (v > max ? max : v);
+
+    private void AddFigureToCurrentLayer(IFigure figure, IFigureGraphicProperties figureGraphicProperties)
+    {
+        CurrentLayerFiguresGraphicProperties[figure] = figureGraphicProperties;
+        CurrentLayerFigures.Add(figure);
+    }
+
+    private void RemoveFigureFromCurrentLayer(IFigure figure)
+    {
+        CurrentLayerFiguresGraphicProperties.Remove(figure);
+        CurrentLayerFigures.Remove(figure);
+    }
 
     private void PushRecentColor(Color color)
     {
