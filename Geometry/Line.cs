@@ -5,18 +5,19 @@ namespace Geometry
 {
     public class Line : IFigure
     {
-        public Point Center { get => (VertArray[0] + VertArray[1]) * 0.5;}
-        public ReadOnlySpan<Point> Vertex { get => VertArray; }
+        public Point Center => (VertArray[0] + VertArray[1]) * 0.5;
+        public ReadOnlySpan<Point> Vertex => VertArray; //Линия определяется этим полем
         private Point[] VertArray;
 
-        public Line(Point a, Point b)
+        public Line(Point a, Point b) //Но фактически для вызова класса нужно два экземпляра класса Point
         {
-            VertArray = new Point[2] { a, b };
-
+            VertArray = [a, b];
         }
         public void Scale(double dx, double dy)
         {
-            for (int i = 0; i < VertArray.Count(); i++)
+            if (dx == 0 || dy == 0)
+            throw new IncorrectScaleParameter();
+            for (int i = 0; i < VertArray.Length; i++)
             {
                 Point dist = VertArray[i] - Center;
                 dist.X *= dx;
@@ -26,49 +27,59 @@ namespace Geometry
         }
         public void RadialScale(double dr)
         {
-            for (int i = 0; i < VertArray.Count(); i++)
+            if (dr == 0)
+            throw new IncorrectScaleParameter();
+            for (int i = 0; i < VertArray.Length; i++)
             {
                 VertArray[i] = Center + (VertArray[i] - Center) * dr;
             }
         }
         public void Rotate(double angle)
         {
-            for (int i = 0; i < VertArray.Count(); i++)
+            for (int i = 0; i < VertArray.Length; i++)
             {
-                Point vert = VertArray[i];
-                double tx = vert.X - Center.X, ty = vert.Y - Center.Y, currAngle = Math.Atan2(ty, tx), distance = Math.Sqrt(Math.Pow(tx, 2) + Math.Pow(ty, 2));
-                Point d = new Point(Math.Cos(angle + currAngle), Math.Sin(angle + currAngle));
-                d.Multiply(distance);
-                VertArray[i] = Center + d;
+                double x = VertArray[i].X * Math.Cos(angle) - VertArray[i].Y * Math.Sin(angle),
+                y = VertArray[i].X * Math.Sin(angle) + VertArray[i].Y * Math.Cos(angle);
+                VertArray[i] = new Point(x, y);
             }
         }
         public void Move(double dx, double dy)
         {
             Point d = new Point(dx, dy);
-            for (int i = 0; i < VertArray.Count(); i++)
-                VertArray[i].Addition(d);
-            Center.Addition(d);
+            for (int i = 0; i < VertArray.Length; i++)
+                VertArray[i]+=d;
         }
         public void UpdateVertex(ReadOnlySpan<Point> NewVertex)
         {
+            if (NewVertex.Length != 2)
+            throw new IncorrectVertexSpan("Линия должна задаваться 2-мя точками");
             VertArray = NewVertex.ToArray();
         }
-        public IEnumerable<IDrawFigure> Draw() => throw new NullReferenceException();
+        public IEnumerable<IDrawFigure> Draw() => throw new NotImplementedException();
         public bool IsIn(Point p, double eps)
         {
-            if (Vertex[0].X == Vertex[1].X)
-            {
-                return Math.Abs(p.X - Vertex[0].X) <= eps && Math.Min(Vertex[0].Y, Vertex[1].Y) - eps <= p.Y && p.Y <= Math.Max(Vertex[0].Y, Vertex[1].Y) - eps;
-            }
-            else if (Vertex[0].Y == Vertex[1].Y)
-            {
-                return Math.Abs(p.Y - Vertex[0].Y) <= eps && Math.Min(Vertex[0].X, Vertex[1].X) - eps <= p.X && p.X <= Math.Max(Vertex[0].X, Vertex[1].X) - eps;
-            }
-            else
-            {
-                double t1 = (p.X - Vertex[0].X) / (Vertex[1].X - Vertex[0].X), t2 = (p.Y - Vertex[0].Y) / (Vertex[1].Y - Vertex[0].Y), lenght = Math.Sqrt(Math.Pow(Vertex[0].X - Vertex[1].X, 2) + Math.Pow(Vertex[0].Y - Vertex[1].Y, 2));
-                return Math.Abs(t1 - t2) * lenght <= 2 * eps && (Math.Max(t2, t1) - 1) * lenght <= eps && Math.Min(t2, t1) * lenght >= -eps;
-            }
+            if (eps < 0)
+            throw new IncorrectInaccuracyParameter();
+
+            Point difp1 = p - Vertex[0], difp2 = p - Vertex[1];
+            double normp1 = Math.Sqrt((Math.Pow(difp1.X, 2) + Math.Pow(difp1.Y, 2))),
+            normp2 = Math.Sqrt((Math.Pow(difp2.X, 2) + Math.Pow(difp2.Y, 2)));
+            if (normp1 <= eps || normp2 <= eps)
+                return true;
+            
+            Point dif12 = Vertex[1] - Vertex[0];
+            double norm12 = Math.Sqrt(Math.Pow(dif12.X, 2) + Math.Pow(dif12.Y, 2)), 
+            cs1 = (difp1.X * dif12.Y + difp1.Y * dif12.X) / (normp1*norm12), 
+            cs2 = (difp2.X * (-dif12.Y) + difp2.Y * (-dif12.X)) / (normp2*norm12);
+            if (cs1 < 0 || cs2 < 0)
+                return false;
+            
+            double p_geron = (normp1 + normp2 + norm12) / 2,
+            s = Math.Sqrt(p_geron * (p_geron - norm12)*(p_geron - normp1) * (p_geron - normp2)),
+            h = 2 * s / norm12;
+            return h <= eps;
+            
         }
+
     }
 }
