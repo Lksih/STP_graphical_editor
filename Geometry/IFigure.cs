@@ -31,6 +31,12 @@ namespace Geometry
         }
         };
 
+    public interface IFigureGraphicProperties
+    {
+        Color Color { get; }
+        double Thickness { get; }
+    }
+
     public interface IDrawFigure
     {
 
