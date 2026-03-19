@@ -71,7 +71,7 @@ namespace Geometry
             double norm12 = Math.Sqrt(Math.Pow(dif12.X, 2) + Math.Pow(dif12.Y, 2)), 
             cs1 = (difp1.X * dif12.Y + difp1.Y * dif12.X) / (normp1*norm12), 
             cs2 = (difp2.X * (-dif12.Y) + difp2.Y * (-dif12.X)) / (normp2*norm12);
-            if (cs1 >= 0 || cs2 >= 0)
+            if (cs1 < 0 || cs2 < 0)
                 return false;
             
             double p_geron = (normp1 + normp2 + norm12) / 2,
