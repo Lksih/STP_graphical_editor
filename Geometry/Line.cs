@@ -6,10 +6,10 @@ namespace Geometry
     public class Line : IFigure
     {
         public Point Center => (VertArray[0] + VertArray[1]) * 0.5;
-        public ReadOnlySpan<Point> Vertex { get => VertArray; }
+        public ReadOnlySpan<Point> Vertex => VertArray; //Линия определяется этим полем
         private Point[] VertArray;
 
-        public Line(Point a, Point b)
+        public Line(Point a, Point b) //Но фактически для вызова класса нужно два экземпляра класса Point
         {
             VertArray = [a, b];
         }

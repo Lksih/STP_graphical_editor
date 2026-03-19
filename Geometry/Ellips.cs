@@ -4,15 +4,16 @@ namespace Geometry
 {
     public class Ellips : IFigure
     {
-        public Point Center { get; set;}
-        public ReadOnlySpan<Point> Vertex { get => []; }
-        double Rx, Ry, Angle;
+        public Point Center { get; set;} //Эллипс задаётся своим центром
+        public ReadOnlySpan<Point> Vertex => []; 
+        double Rx, Ry, Angle; //А также радиусами по X и Y
 
-        public Ellips(Point c, double rx, double ry)
+        public Ellips(Point c, double rx, double ry) //Соответственно, одна точка и два числа
         {
             Center = c;
             Rx = rx;
             Ry = ry;
+            Angle = 0;
         }
         public void Scale(double dx, double dy)
         {

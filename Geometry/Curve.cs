@@ -6,12 +6,12 @@ namespace Geometry
     public class Curve : IFigure
     {
         public Point Center { get; private set;}
-        public ReadOnlySpan<Point> Vertex { get => VertArray; }
+        public ReadOnlySpan<Point> Vertex => VertArray; //Кривая задаётся этим полем
         private Point[] VertArray;
 
-        public Curve(ReadOnlySpan<Point> Verts)
+        public Curve(ReadOnlySpan<Point> Verts) //Экземпляр класса тоже вызывается им
         {
-            if (Verts.Length != 3)
+            if (Verts.Length != 3) //В спане должно быть ровно 3 точки
             throw new IncorrectVertexSpan("Кривая должна задаваться 3-мя вершинами");
             Center = new Point(0, 0);
             VertArray = [.. Verts];

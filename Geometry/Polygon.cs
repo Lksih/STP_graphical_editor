@@ -6,13 +6,13 @@ namespace Geometry
     public class Polygon : IFigure
     {
         public Point Center { get; private set;}
-        public ReadOnlySpan<Point> Vertex { get => VertArray; }
+        public ReadOnlySpan<Point> Vertex => VertArray; //Полигон задаётся этим полем
         private Point[] VertArray;
 
-        public Polygon(ReadOnlySpan<Point> Verts)
+        public Polygon(ReadOnlySpan<Point> Verts) //Оно же используется для создания класса
         {
-            if (Verts.Length < 3)
-            throw new IncorrectVertexSpan("Количество точек в фигуре должно быть  не меньше 3-х");
+            if (Verts.Length < 3) //Точек в спане должно быть 3 или больше
+            throw new IncorrectVertexSpan("Количество точек в фигуре должно быть  не меньше 3-х"); 
             Center = new Point(0, 0);
             VertArray = [.. Verts];
             foreach (var vert in VertArray)
