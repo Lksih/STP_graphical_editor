@@ -102,7 +102,7 @@ namespace Geometry
                 summ += angle;
             }
             
-            if (Math.Round(summ, 14) == Math.Round(2 * Math.PI, 14))
+            if (Math.Round(summ, 10) == Math.Round(2 * Math.PI, 10))
                 return true;
             else
             {

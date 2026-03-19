@@ -7,7 +7,7 @@ namespace Geometry
     {
         public Point Center { get; private set; }
 
-        public ReadOnlySpan<Point> Vertex => VertArray;
+        public ReadOnlySpan<Point> Vertex => VertArray; //Класс восстанавливается через набор точек
 
         private Point[] VertArray;
         private Curve[] Curves;
