@@ -103,7 +103,7 @@ public sealed class GeometryCanvas : Control
                 else
                 {
                     var fig = new GraphicLine(_lineStart, modelPoint, vm.ForegroundColor, 2.0);
-                    vm.Figures.Add(fig);
+                    vm.CurrentLayerFigures.Add(fig);
                     vm.SelectedFigure = fig;
                     _lineStart = null;
                     vm.IsDirty = true;
@@ -127,7 +127,7 @@ public sealed class GeometryCanvas : Control
                 {
                     var verts = _polygonPoints.ToArray();
                     var fig = new GraphicPolygon(verts, vm.ForegroundColor, 2.0);
-                    vm.Figures.Add(fig);
+                    vm.CurrentLayerFigures.Add(fig);
                     vm.SelectedFigure = fig;
                     _polygonPoints.Clear();
                     vm.IsDirty = true;
@@ -152,7 +152,7 @@ public sealed class GeometryCanvas : Control
                     if (ry < 1) ry = 1;
 
                     var fig = new GraphicEllipse(c, rx, ry, vm.ForegroundColor, 2.0);
-                    vm.Figures.Add(fig);
+                    vm.CurrentLayerFigures.Add(fig);
                     vm.SelectedFigure = fig;
                     _ellipseCenter = null;
                     vm.IsDirty = true;
@@ -184,7 +184,7 @@ public sealed class GeometryCanvas : Control
         if (vm.SelectedTool == ToolKind.Eraser)
         {
             // Удаление объекта
-            var list = vm.Figures;
+            var list = vm.CurrentLayerFigures;
             if (list.Contains(hit))
             {
                 list.Remove(hit);

@@ -1,6 +1,6 @@
 using System;
+using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Interactivity;
 using Avalonia.Input;
 using Avalonia.VisualTree;
 using STP_group_1.ViewModels;
@@ -10,7 +10,10 @@ namespace STP_group_1.Views
     public partial class MainWindow : Window
     {
         private bool _closeConfirmed;
+
         private LayerViewModel? _dragLayer;
+        private Point? _dragStartPoint;
+        private bool _isDraggingLayer;
 
         public MainWindow()
         {
@@ -27,42 +30,74 @@ namespace STP_group_1.Views
 
             list.AddHandler(DragDrop.DropEvent, OnLayersDrop);
             list.AddHandler(DragDrop.DragOverEvent, OnLayersDragOver);
-            list.AddHandler(PointerPressedEvent, OnLayersPointerPressed, RoutingStrategies.Tunnel);
         }
 
-        private async void OnLayersPointerPressed(object? sender, PointerPressedEventArgs e)
+        private void OnLayerDragHandlePressed(object? sender, PointerPressedEventArgs e)
         {
-            if (sender is not ListBox list)
+            if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
                 return;
 
-            var point = e.GetCurrentPoint(list);
-            if (!point.Properties.IsLeftButtonPressed)
-                return;
-
-            var item = (e.Source as Control)?.FindAncestorOfType<ListBoxItem>();
+            var source = e.Source as Control;
+            var item = source?.FindAncestorOfType<ListBoxItem>();
             if (item?.DataContext is not LayerViewModel layer)
                 return;
 
             _dragLayer = layer;
+            _dragStartPoint = e.GetPosition(this);
+            _isDraggingLayer = false;
+
+            e.Handled = true;
+        }
+
+        private async void OnLayerDragHandleMoved(object? sender, PointerEventArgs e)
+        {
+            if (_dragLayer is null || _dragStartPoint is null || _isDraggingLayer)
+                return;
+
+            var current = e.GetPosition(this);
+            var dx = Math.Abs(current.X - _dragStartPoint.Value.X);
+            var dy = Math.Abs(current.Y - _dragStartPoint.Value.Y);
+
+            if (dx < 4 && dy < 4)
+                return;
+
+            _isDraggingLayer = true;
 
 #pragma warning disable CS0618
             var data = new DataObject();
-            data.Set("layer", layer);
+            data.Set("layer", _dragLayer);
 
             await DragDrop.DoDragDrop(e, data, DragDropEffects.Move);
 #pragma warning restore CS0618
+
+            _dragLayer = null;
+            _dragStartPoint = null;
+            _isDraggingLayer = false;
+
+            e.Handled = true;
+        }
+
+        private void OnLayerDragHandleReleased(object? sender, PointerReleasedEventArgs e)
+        {
+            _dragLayer = null;
+            _dragStartPoint = null;
+            _isDraggingLayer = false;
         }
 
         private void OnLayersDragOver(object? sender, DragEventArgs e)
         {
-            e.DragEffects = e.Data.Contains("layer") ? DragDropEffects.Move : DragDropEffects.None;
+            e.DragEffects = e.Data.Contains("layer")
+                ? DragDropEffects.Move
+                : DragDropEffects.None;
+
             e.Handled = true;
         }
 
         private void OnLayersDrop(object? sender, DragEventArgs e)
         {
-            if (sender is not ListBox list)
+            if (sender is not ListBox)
                 return;
+
             if (!e.Data.Contains("layer"))
                 return;
 
@@ -77,8 +112,11 @@ namespace STP_group_1.Views
                 return;
 
             var from = vm.Layers.IndexOf(dragged);
-            var to = targetLayer is null ? vm.Layers.Count - 1 : vm.Layers.IndexOf(targetLayer);
-            if (from < 0 || to < 0)
+            var to = targetLayer is null
+                ? vm.Layers.Count - 1
+                : vm.Layers.IndexOf(targetLayer);
+
+            if (from < 0 || to < 0 || from == to)
                 return;
 
             vm.MoveLayer(from, to);
@@ -94,6 +132,7 @@ namespace STP_group_1.Views
                 return;
 
             e.Cancel = true;
+
             if (await vm.CanCloseAsync())
             {
                 _closeConfirmed = true;

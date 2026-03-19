@@ -1,13 +1,11 @@
 using Avalonia;
 using Avalonia.Media;
 using Avalonia.Styling;
-using DynamicData;
 using Geometry;
 using ReactiveUI;
 using STP_group_1.Services;
 using System;
 using System.Collections.ObjectModel;
-using System.Globalization;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
@@ -51,7 +49,9 @@ public sealed class MainWindowViewModel : ViewModelBase
         _io = io;
 
         // Initial state
-        Layers.Add(new LayerViewModel { Name = "Background", PreviewBrush = Brushes.White });
+        var initialLayer = new LayerViewModel { Name = "Background", PreviewBrush = Brushes.White };
+        AttachLayer(initialLayer);
+        Layers.Add(initialLayer);
         SelectedLayer = Layers.FirstOrDefault();
         SelectedTool = ToolKind.Move;
         SelectedTheme = EditorTheme.System;
@@ -87,8 +87,15 @@ public sealed class MainWindowViewModel : ViewModelBase
             .ToProperty(this, x => x.ZoomFactor, out _zoomFactor);
 
         this.WhenAnyValue(x => x.ZoomPercent)
-            .Select(z => $"{z}%")
-            .ToProperty(this, x => x.ZoomPercentText, out _zoomPercentText);
+            .Subscribe(z =>
+            {
+                var text = $"{z}%";
+                if (_zoomPercentText != text)
+                {
+                    _zoomPercentText = text;
+                    this.RaisePropertyChanged(nameof(ZoomPercentText));
+                }
+            });
 
         this.WhenAnyValue(x => x.CanvasWidth, x => x.ZoomFactor)
             .Select(t => t.Item1 * t.Item2)
@@ -114,6 +121,8 @@ public sealed class MainWindowViewModel : ViewModelBase
             .Subscribe(ApplyTheme);
 
         RecentColors.CollectionChanged += (_, __) => this.RaisePropertyChanged(nameof(HasRecentColors));
+
+        Layers.CollectionChanged += (_, __) => RaiseLayersChanged();
 
         // ---- Commands ----
 
@@ -266,6 +275,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         }
     }
 
+
     private void ApplyRecentColor(object? value)
     {
         if (value is Color c)
@@ -318,6 +328,7 @@ public sealed class MainWindowViewModel : ViewModelBase
     }
 
     public ObservableCollection<Color> RecentColors { get; } = new();
+    public ObservableCollection<IFigure> VisibleFigures { get; } = new();
 
     public bool HasRecentColors => RecentColors.Count > 0;
 
@@ -339,8 +350,26 @@ public sealed class MainWindowViewModel : ViewModelBase
     private readonly ObservableAsPropertyHelper<double> _canvasHeightZoomed;
     public double CanvasHeightZoomed => _canvasHeightZoomed.Value;
 
-    private readonly ObservableAsPropertyHelper<string> _zoomPercentText;
-    public string ZoomPercentText => _zoomPercentText.Value;
+    private string _zoomPercentText = "100%";
+    public string ZoomPercentText
+    {
+        get => _zoomPercentText;
+        set
+        {
+            if (_zoomPercentText == value)
+                return;
+
+            this.RaiseAndSetIfChanged(ref _zoomPercentText, value);
+
+            var text = value?.Trim() ?? string.Empty;
+            text = text.Replace("%", "").Trim();
+
+            if (int.TryParse(text, out var parsed))
+            {
+                ZoomPercent = parsed;
+            }
+        }
+    }
 
     // ---------- Theme ----------
 
@@ -371,6 +400,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         };
     }
 
+
     // ---------- Layers ----------
 
     public ObservableCollection<LayerViewModel> Layers { get; } = new();
@@ -382,18 +412,56 @@ public sealed class MainWindowViewModel : ViewModelBase
         set
         {
             this.RaiseAndSetIfChanged(ref _selectedLayer, value);
-            this.RaisePropertyChanged(nameof(Figures));
+            this.RaisePropertyChanged(nameof(CurrentLayerFigures));
         }
     }
 
-    // ---------- Geometry figures (per-layer) ----------
+    private void RebuildVisibleFigures()
+    {
+        VisibleFigures.Clear();
+
+        foreach (var layer in Layers.Where(l => l.IsVisible))
+        {
+            foreach (var figure in layer.Figures)
+                VisibleFigures.Add(figure);
+        }
+    }
+
+    private void RaiseLayersChanged()
+    {
+        RebuildVisibleFigures();
+
+        this.RaisePropertyChanged(nameof(CurrentLayerFigures));
+        this.RaisePropertyChanged(nameof(SelectedLayer));
+    }
+
+    private void AttachLayer(LayerViewModel layer)
+    {
+        layer.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(LayerViewModel.IsVisible))
+            {
+                if (!layer.IsVisible && SelectedFigure is not null && layer.Figures.Contains(SelectedFigure))
+                    SelectedFigure = null;
+
+                if (!layer.IsVisible && ReferenceEquals(SelectedLayer, layer))
+                    SelectedLayer = Layers.FirstOrDefault(l => l.IsVisible);
+
+                RaiseLayersChanged();
+            }
+        };
+
+        layer.Figures.CollectionChanged += (_, __) => RaiseLayersChanged();
+    }
+
+    // ---------- Geometry CurrentLayerFigures (per-layer) ----------
 
     private static readonly ObservableCollection<IFigure> EmptyFigures = new();
 
     /// <summary>
     /// Фигуры активного слоя. Для невырбранного слоя возвращается пустая коллекция.
     /// </summary>
-    public ObservableCollection<IFigure> Figures => SelectedLayer?.Figures ?? EmptyFigures;
+    public ObservableCollection<IFigure> CurrentLayerFigures => SelectedLayer?.Figures ?? EmptyFigures;
 
     private IFigure? _selectedFigure;
     public IFigure? SelectedFigure
@@ -417,8 +485,6 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     public ReactiveCommand<Unit, Unit> ZoomInCommand { get; }
     public ReactiveCommand<Unit, Unit> ZoomOutCommand { get; }
-
-    public ReactiveCommand<Unit, Unit> SwapColorsCommand { get; }
 
     public ReactiveCommand<Unit, Unit> DeleteSelectedFigureCommand { get; }
     public ReactiveCommand<Unit, Unit> RotateSelectedFigureCommand { get; }
@@ -460,8 +526,18 @@ public sealed class MainWindowViewModel : ViewModelBase
         CanvasBackground = options.Value.Background;
 
         Layers.Clear();
-        Layers.Add(new LayerViewModel { Name = "Layer 1", PreviewBrush = new SolidColorBrush(CanvasBackground) });
-        SelectedLayer = Layers.FirstOrDefault();
+
+        var layer = new LayerViewModel
+        {
+            Name = "Layer 1",
+            PreviewBrush = new SolidColorBrush(CanvasBackground)
+        };
+
+        AttachLayer(layer);
+        Layers.Add(layer);
+        SelectedLayer = layer;
+
+        RaiseLayersChanged();
 
         CurrentProjectPath = null;
         IsDirty = false;
@@ -536,7 +612,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         if (SelectedFigure is null)
             return;
 
-        Figures.Remove(SelectedFigure);
+        CurrentLayerFigures.Remove(SelectedFigure);
         SelectedFigure = null;
         IsDirty = true;
     }
@@ -564,7 +640,7 @@ public sealed class MainWindowViewModel : ViewModelBase
 
         var fig = new GraphicLine(a, b, ForegroundColor, 2.0);
 
-        Figures.Add(fig);
+        CurrentLayerFigures.Add(fig);
         SelectedFigure = fig;
         IsDirty = true;
     }
@@ -584,7 +660,7 @@ public sealed class MainWindowViewModel : ViewModelBase
 
         var fig = new GraphicPolygon(verts, ForegroundColor, 2.0);
 
-        Figures.Add(fig);
+        CurrentLayerFigures.Add(fig);
         SelectedFigure = fig;
         IsDirty = true;
     }
@@ -596,7 +672,7 @@ public sealed class MainWindowViewModel : ViewModelBase
 
         var fig = new GraphicEllipse(new Geometry.Point(cx, cy), 120, 80, ForegroundColor, 2.0);
 
-        Figures.Add(fig);
+        CurrentLayerFigures.Add(fig);
         SelectedFigure = fig;
         IsDirty = true;
     }
@@ -609,8 +685,15 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     private void NewLayer()
     {
-        Layers.Add(new LayerViewModel { Name = $"Layer {Layers.Count + 1}", PreviewBrush = Brushes.LightGray });
-        SelectedLayer = Layers.LastOrDefault();
+        var layer = new LayerViewModel
+        {
+            Name = $"Layer {Layers.Count + 1}",
+            PreviewBrush = Brushes.LightGray
+        };
+
+        AttachLayer(layer);
+        Layers.Add(layer);
+        SelectedLayer = layer;
         IsDirty = true;
     }
 
@@ -648,12 +731,12 @@ public sealed class MainWindowViewModel : ViewModelBase
     private void InitializeDemoFigures()
     {
         // Заготовка на базе Geometry.IFigure
-        Figures.Add(new GraphicLine(new Geometry.Point(100, 120), new Geometry.Point(360, 180),
+        CurrentLayerFigures.Add(new GraphicLine(new Geometry.Point(100, 120), new Geometry.Point(360, 180),
             Colors.CornflowerBlue,
             2.0
         ));
 
-        Figures.Add(new GraphicPolygon(new[]
+        CurrentLayerFigures.Add(new GraphicPolygon(new[]
         {
             new Geometry.Point(420, 260),
             new Geometry.Point(540, 300),
