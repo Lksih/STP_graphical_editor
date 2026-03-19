@@ -272,7 +272,7 @@ public sealed class GeometryCanvas : Control
         var color = Colors.CornflowerBlue;
         var thickness = 1.5;
 
-        if (figure is IFigureGraphicProperties props)
+        if (figure is Geometry.IFigureGraphicProperties props)
         {
             var c = props.Color;
             color = new Color(c.A, c.R, c.G, c.B);

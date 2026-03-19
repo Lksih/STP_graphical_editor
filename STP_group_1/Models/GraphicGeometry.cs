@@ -23,7 +23,7 @@ namespace UI.Models
         public double Thickness { get; }
     }
 
-    public class GraphicEllipse : Ellipse, IFigureGraphicProperties
+    public class GraphicEllipse : Ellips, IFigureGraphicProperties
     {
         public GraphicEllipse(Geometry.Point c, double rx, double ry, Color color, double thickness) : base(c, rx, ry)
         {
