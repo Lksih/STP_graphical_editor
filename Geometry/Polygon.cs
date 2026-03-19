@@ -17,7 +17,7 @@ namespace Geometry
             VertArray = [.. Verts];
             foreach (var vert in VertArray)
                 Center += vert;
-            Center *= 1 / VertArray.Length;
+            Center *= 1.0 / VertArray.Length;
         }
         public void Scale(double dx, double dy)
         {
@@ -64,7 +64,7 @@ namespace Geometry
             Center = new Point(0, 0);
             foreach (var vert in VertArray)
                 Center += vert;
-            Center *= 1 / VertArray.Length;
+            Center *= 1.0 / VertArray.Length;
         }
         public IEnumerable<IDrawFigure> Draw() => throw new NotImplementedException();
         public bool IsIn(Point p, double eps)

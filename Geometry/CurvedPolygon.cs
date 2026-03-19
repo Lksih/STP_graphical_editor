@@ -152,7 +152,7 @@ namespace Geometry
             Center = new Point(0, 0);
             foreach (var vert in VertArray)
                 Center += vert;
-            Center *= 1 / VertArray.Length;
+            Center *= 1.0 / VertArray.Length;
         }
     }
 }
