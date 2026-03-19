@@ -76,19 +76,19 @@ namespace Geometry
             Point dif1 = VertArray[0] - p, dif2 = VertArray[VertArray.Length - 1] - p;
             if (dif1.X == 0 && dif1.Y == 0 || dif2.X == 0 && dif2.Y == 0)
                 return true;
-            double angle = Math.Acos((dif1.X * dif2.Y + dif1.Y * dif2.X) / 
+            double angle = Math.Acos((dif1.X * dif2.X + dif1.Y * dif2.Y) / 
             Math.Sqrt((Math.Pow(dif1.X, 2) + Math.Pow(dif1.Y, 2))*(Math.Pow(dif2.X, 2) + Math.Pow(dif2.Y, 2))));
             summ += angle;
             double pseudonorm = dif1.X * dif2.Y - dif1.Y * dif2.X;
             if (pseudonorm != 0)
                 sgn = pseudonorm / Math.Abs(pseudonorm);
-            for (int i = 0; i < VertArray.Length - 1; i++)
+            for (int i = 1; i < VertArray.Length; i++)
             {
                 dif1 = VertArray[i] - p;
-                dif2 = VertArray[i + 1] - p;
+                dif2 = VertArray[i - 1] - p;
                 if (dif1.X == 0 && dif1.Y == 0 || dif2.X == 0 && dif2.Y == 0)
                     return true;
-                angle = Math.Acos((dif1.X * dif2.Y + dif1.Y * dif2.X) / 
+                angle = Math.Acos((dif1.X * dif2.X + dif1.Y * dif2.Y) / 
                 Math.Sqrt((Math.Pow(dif1.X, 2) + Math.Pow(dif1.Y, 2))*(Math.Pow(dif2.X, 2) + Math.Pow(dif2.Y, 2))));
                 pseudonorm = dif1.X * dif2.Y - dif1.Y * dif2.X;
                 if (pseudonorm != 0)
@@ -120,7 +120,7 @@ namespace Geometry
                     normba = Math.Sqrt(Math.Pow(difba.X, 2) + Math.Pow(difba.Y, 2));
                     cs1 = (difpa.X * difba.Y + difpa.Y * difba.X) / (normpa*normba); 
                     cs2 = (difpb.X * (-difba.Y) + difpb.Y * (-difba.X)) / (normpb*normba);
-                    if (cs1 >= 0 || cs2 >= 0)
+                    if (cs1 < 0 || cs2 < 0)
                         continue;
             
                     p_geron = (normpa + normpb + normba) / 2;
@@ -140,7 +140,7 @@ namespace Geometry
                 normba = Math.Sqrt(Math.Pow(difba.X, 2) + Math.Pow(difba.Y, 2));
                 cs1 = (difpa.X * difba.Y + difpa.Y * difba.X) / (normpa*normba);
                 cs2 = (difpb.X * (-difba.Y) + difpb.Y * (-difba.X)) / (normpb*normba);
-                if (cs1 >= 0 || cs2 >= 0)
+                if (cs1 < 0 || cs2 < 0)
                     return false;
             
                 p_geron = (normpa + normpb + normba) / 2;
