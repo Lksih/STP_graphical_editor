@@ -17,7 +17,7 @@ namespace Geometry
             VertArray = [.. Verts];
             foreach (var vert in VertArray)
                 Center += vert;
-            Center *= 1 / VertArray.Length;
+            Center *= 1.0 / VertArray.Length;
         }
         public void Scale(double dx, double dy)
         {
@@ -64,7 +64,7 @@ namespace Geometry
             Center = new Point(0, 0);
             foreach (var vert in VertArray)
                 Center += vert;
-            Center *= 1 / VertArray.Length;
+            Center *= 1.0 / VertArray.Length;
         }
         public IEnumerable<IDrawFigure> Draw() => throw new NotImplementedException();
         public bool IsIn(Point p, double eps) // через аппроксимацию отрезками
@@ -131,7 +131,7 @@ namespace Geometry
             double normba = Math.Sqrt(Math.Pow(difba.X, 2) + Math.Pow(difba.Y, 2)), 
             cs1 = (difpa.X * difba.Y + difpa.Y * difba.X) / (normpa*normba), 
             cs2 = (difpb.X * (-difba.Y) + difpb.Y * (-difba.X)) / (normpb*normba);
-            if (cs1 >= 0 || cs2 >= 0)
+            if (cs1 < 0 || cs2 < 0)
                 return false;
             
             double p_geron = (normpa + normpb + normba) / 2,
