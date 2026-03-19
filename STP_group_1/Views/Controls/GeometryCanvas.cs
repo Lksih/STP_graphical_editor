@@ -44,10 +44,6 @@ public sealed class GeometryCanvas : Control
     private bool _isDragging;
     private Avalonia.Point _dragStartPointer;
 
-    private Geometry.Point? _lineStart;
-    private readonly List<Geometry.Point> _polygonPoints = new();
-    private Geometry.Point? _ellipseCenter;
-
     static GeometryCanvas()
     {
         AffectsRender<GeometryCanvas>(FiguresProperty, ZoomFactorProperty, SelectedFigureProperty);
@@ -84,136 +80,35 @@ public sealed class GeometryCanvas : Control
         var pt = e.GetPosition(this);
         var point = e.GetCurrentPoint(this);
 
-        var vm = DataContext as MainWindowViewModel;
+        var vm = DataContext as ICanvasInteractionHandler;
         var figures = Figures;
         if (vm is null || figures is null)
             return;
 
         var modelPoint = new Geometry.Point(pt.X / ZoomFactor, pt.Y / ZoomFactor);
 
-        // ---- Creation tools ----
-        if (vm.SelectedTool == ToolKind.Line || vm.SelectedTool == ToolKind.Polygon || vm.SelectedTool == ToolKind.Ellipse)
-        {
-            if (vm.SelectedTool == ToolKind.Line && point.Properties.IsLeftButtonPressed)
-            {
-                if (_lineStart is null)
-                {
-                    _lineStart = modelPoint;
-                }
-                else
-                {
-                    var fig = new Line(_lineStart, modelPoint);
-                    vm.CurrentLayerFigures.Add(fig);
-                    vm.CurrentLayerFiguresGraphicProperties[fig] = new FigureGraphicProperties(vm.ForegroundColor, 2.0);
-                    vm.SelectedFigure = fig;
-                    _lineStart = null;
-                    vm.IsDirty = true;
-                    InvalidateVisual();
-                }
-
-                e.Handled = true;
-                return;
-            }
-
-            if (vm.SelectedTool == ToolKind.Polygon)
-            {
-                if (point.Properties.IsLeftButtonPressed)
-                {
-                    _polygonPoints.Add(modelPoint);
-                    e.Handled = true;
-                    return;
-                }
-
-                if (point.Properties.IsRightButtonPressed && _polygonPoints.Count >= 3)
-                {
-                    var verts = _polygonPoints.ToArray();
-                    var fig = new Polygon(verts);
-                    vm.CurrentLayerFigures.Add(fig);
-                    vm.CurrentLayerFiguresGraphicProperties[fig] = new FigureGraphicProperties(vm.ForegroundColor, 2.0);
-                    vm.SelectedFigure = fig;
-                    _polygonPoints.Clear();
-                    vm.IsDirty = true;
-                    InvalidateVisual();
-                    e.Handled = true;
-                    return;
-                }
-            }
-
-            if (vm.SelectedTool == ToolKind.Ellipse && point.Properties.IsLeftButtonPressed)
-            {
-                if (_ellipseCenter is null)
-                {
-                    _ellipseCenter = modelPoint;
-                }
-                else
-                {
-                    var c = _ellipseCenter;
-                    var rx = Math.Abs(modelPoint.X - c.X);
-                    var ry = Math.Abs(modelPoint.Y - c.Y);
-                    if (rx < 1) rx = 1;
-                    if (ry < 1) ry = 1;
-
-                    var fig = new Ellipse(c, rx, ry);
-                    vm.CurrentLayerFigures.Add(fig);
-                    vm.CurrentLayerFiguresGraphicProperties[fig] = new FigureGraphicProperties(vm.ForegroundColor, 2.0);
-                    vm.SelectedFigure = fig;
-                    _ellipseCenter = null;
-                    vm.IsDirty = true;
-                    InvalidateVisual();
-                }
-
-                e.Handled = true;
-                return;
-            }
-        }
-
-        // ---- Selection / move / erase ----
-        if (!point.Properties.IsLeftButtonPressed)
-            return;
-
         const double baseEpsPx = 6.0;
         var eps = baseEpsPx / Math.Max(ZoomFactor, 0.0001);
+        var handled = vm.HandleCanvasPointerPressed(
+            modelPoint,
+            point.Properties.IsLeftButtonPressed,
+            point.Properties.IsRightButtonPressed,
+            eps,
+            figures,
+            out var shouldStartDragging);
 
-        // hit-test сверху вниз (последняя фигура "выше")
-        var hit = figures.Reverse().FirstOrDefault(f => f.IsIn(modelPoint, eps));
-
-        if (hit is null)
-        {
-            vm.SelectedFigure = null;
-            InvalidateVisual();
+        if (!handled)
             return;
-        }
 
-        if (vm.SelectedTool == ToolKind.Eraser)
-        {
-            // Удаление объекта
-            var list = vm.CurrentLayerFigures;
-            if (list.Contains(hit))
-            {
-                list.Remove(hit);
-                if (ReferenceEquals(vm.SelectedFigure, hit))
-                    vm.SelectedFigure = null;
-                vm.IsDirty = true;
-                InvalidateVisual();
-            }
-
-            e.Handled = true;
-            return;
-        }
-
-        vm.SelectedFigure = hit;
-
-        if (vm.SelectedTool == ToolKind.Move)
+        if (shouldStartDragging)
         {
             _isDragging = true;
             _dragStartPointer = pt;
             e.Pointer.Capture(this);
-            e.Handled = true;
         }
-        else
-        {
-            InvalidateVisual();
-        }
+
+        InvalidateVisual();
+        e.Handled = true;
     }
 
     protected override void OnPointerMoved(PointerEventArgs e)
@@ -223,9 +118,8 @@ public sealed class GeometryCanvas : Control
         if (!_isDragging)
             return;
 
-        var vm = DataContext as MainWindowViewModel;
-        var fig = vm?.SelectedFigure;
-        if (vm is null || fig is null)
+        var vm = DataContext as ICanvasInteractionHandler;
+        if (vm is null)
             return;
 
         var pt = e.GetPosition(this);
@@ -234,7 +128,7 @@ public sealed class GeometryCanvas : Control
         var dx = delta.X / Math.Max(ZoomFactor, 0.0001);
         var dy = delta.Y / Math.Max(ZoomFactor, 0.0001);
 
-        fig.Move(dx, dy);
+        vm.HandleCanvasDragDelta(dx, dy);
         _dragStartPointer = pt;
 
         InvalidateVisual();

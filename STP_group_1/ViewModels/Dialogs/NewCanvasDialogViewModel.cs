@@ -1,10 +1,10 @@
 using System;
 using System.Reactive;
-using Avalonia.Media;
 using ReactiveUI;
+using Avalonia.Media;
 using STP_group_1.ViewModels;
 
-namespace STP_group_1.Views.Dialogs;
+namespace STP_group_1.ViewModels.Dialogs;
 
 public sealed class NewCanvasDialogViewModel : ViewModelBase
 {
@@ -44,3 +44,4 @@ public sealed class NewCanvasDialogViewModel : ViewModelBase
 
     public event Action<bool>? CloseRequested;
 }
+

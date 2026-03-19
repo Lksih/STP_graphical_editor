@@ -31,9 +31,15 @@ public enum ActiveColorTarget
     Background
 }
 
+public interface ICanvasInteractionHandler
+{
+    bool HandleCanvasPointerPressed(Geometry.Point modelPoint, bool isLeftButtonPressed, bool isRightButtonPressed, double hitTolerance, IEnumerable<IFigure> figures, out bool shouldStartDragging);
+    void HandleCanvasDragDelta(double dx, double dy);
+}
 
 
-public sealed class MainWindowViewModel : ViewModelBase
+
+public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandler
 {
     private readonly IUiDialogService _dialogs;
     private readonly IEditorIoService _io;
@@ -474,6 +480,10 @@ public sealed class MainWindowViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _selectedFigure, value);
     }
 
+    private Geometry.Point? _lineStart;
+    private readonly List<Geometry.Point> _polygonPoints = new();
+    private Geometry.Point? _ellipseCenter;
+
     // ---------- Commands (public for XAML bindings) ----------
 
     public ReactiveCommand<string?, Unit> SelectToolCommand { get; }
@@ -733,6 +743,129 @@ public sealed class MainWindowViewModel : ViewModelBase
         Layers.RemoveAt(fromIndex);
         Layers.Insert(toIndex, item);
         SelectedLayer = item;
+        IsDirty = true;
+    }
+
+    public void MoveLayer(LayerViewModel draggedLayer, LayerViewModel? targetLayer)
+    {
+        var from = Layers.IndexOf(draggedLayer);
+        var to = targetLayer is null
+            ? Layers.Count - 1
+            : Layers.IndexOf(targetLayer);
+
+        MoveLayer(from, to);
+    }
+
+    public bool HandleCanvasPointerPressed(Geometry.Point modelPoint, bool isLeftButtonPressed, bool isRightButtonPressed, double hitTolerance, IEnumerable<IFigure> figures, out bool shouldStartDragging)
+    {
+        shouldStartDragging = false;
+
+        if (SelectedTool == ToolKind.Line || SelectedTool == ToolKind.Polygon || SelectedTool == ToolKind.Ellipse)
+        {
+            if (SelectedTool == ToolKind.Line && isLeftButtonPressed)
+            {
+                if (_lineStart is null)
+                {
+                    _lineStart = modelPoint;
+                }
+                else
+                {
+                    var fig = new Line(_lineStart, modelPoint);
+                    CurrentLayerFigures.Add(fig);
+                    CurrentLayerFiguresGraphicProperties[fig] = new FigureGraphicProperties(ForegroundColor, 2.0);
+                    SelectedFigure = fig;
+                    _lineStart = null;
+                    IsDirty = true;
+                }
+
+                return true;
+            }
+
+            if (SelectedTool == ToolKind.Polygon)
+            {
+                if (isLeftButtonPressed)
+                {
+                    _polygonPoints.Add(modelPoint);
+                    return true;
+                }
+
+                if (isRightButtonPressed && _polygonPoints.Count >= 3)
+                {
+                    var verts = _polygonPoints.ToArray();
+                    var fig = new Polygon(verts);
+                    CurrentLayerFigures.Add(fig);
+                    CurrentLayerFiguresGraphicProperties[fig] = new FigureGraphicProperties(ForegroundColor, 2.0);
+                    SelectedFigure = fig;
+                    _polygonPoints.Clear();
+                    IsDirty = true;
+                    return true;
+                }
+            }
+
+            if (SelectedTool == ToolKind.Ellipse && isLeftButtonPressed)
+            {
+                if (_ellipseCenter is null)
+                {
+                    _ellipseCenter = modelPoint;
+                }
+                else
+                {
+                    var c = _ellipseCenter;
+                    var rx = Math.Abs(modelPoint.X - c.X);
+                    var ry = Math.Abs(modelPoint.Y - c.Y);
+                    if (rx < 1) rx = 1;
+                    if (ry < 1) ry = 1;
+
+                    var fig = new Ellipse(c, rx, ry);
+                    CurrentLayerFigures.Add(fig);
+                    CurrentLayerFiguresGraphicProperties[fig] = new FigureGraphicProperties(ForegroundColor, 2.0);
+                    SelectedFigure = fig;
+                    _ellipseCenter = null;
+                    IsDirty = true;
+                }
+
+                return true;
+            }
+        }
+
+        if (!isLeftButtonPressed)
+            return false;
+
+        var hit = figures.Reverse().FirstOrDefault(f => f.IsIn(modelPoint, hitTolerance));
+
+        if (hit is null)
+        {
+            SelectedFigure = null;
+            return true;
+        }
+
+        if (SelectedTool == ToolKind.Eraser)
+        {
+            if (CurrentLayerFigures.Contains(hit))
+            {
+                CurrentLayerFigures.Remove(hit);
+                if (ReferenceEquals(SelectedFigure, hit))
+                    SelectedFigure = null;
+                IsDirty = true;
+            }
+
+            return true;
+        }
+
+        SelectedFigure = hit;
+
+        if (SelectedTool == ToolKind.Move)
+            shouldStartDragging = true;
+
+        return true;
+    }
+
+    public void HandleCanvasDragDelta(double dx, double dy)
+    {
+        if (SelectedFigure is null || SelectedTool != ToolKind.Move)
+            return;
+
+        SelectedFigure.Move(dx, dy);
         IsDirty = true;
     }
 

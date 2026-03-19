@@ -6,6 +6,7 @@ using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 using Avalonia.Media;
 using STP_group_1.Views.Dialogs;
+using STP_group_1.ViewModels.Dialogs;
 
 namespace STP_group_1.Services;
 

@@ -111,15 +111,7 @@ namespace STP_group_1.Views
             if (DataContext is not MainWindowViewModel vm)
                 return;
 
-            var from = vm.Layers.IndexOf(dragged);
-            var to = targetLayer is null
-                ? vm.Layers.Count - 1
-                : vm.Layers.IndexOf(targetLayer);
-
-            if (from < 0 || to < 0 || from == to)
-                return;
-
-            vm.MoveLayer(from, to);
+            vm.MoveLayer(dragged, targetLayer);
             e.Handled = true;
         }
 
