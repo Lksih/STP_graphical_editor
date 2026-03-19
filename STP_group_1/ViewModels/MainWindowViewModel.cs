@@ -1,10 +1,12 @@
 using Avalonia;
 using Avalonia.Media;
 using Avalonia.Styling;
+using DynamicData;
 using Geometry;
 using ReactiveUI;
 using STP_group_1.Services;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive;
@@ -457,11 +459,13 @@ public sealed class MainWindowViewModel : ViewModelBase
     // ---------- Geometry CurrentLayerFigures (per-layer) ----------
 
     private static readonly ObservableCollection<IFigure> EmptyFigures = new();
+    private static readonly Dictionary<IFigure, IFigureGraphicProperties> EmptyFiguresGraphicProperties = new();
 
     /// <summary>
     /// Фигуры активного слоя. Для невырбранного слоя возвращается пустая коллекция.
     /// </summary>
     public ObservableCollection<IFigure> CurrentLayerFigures => SelectedLayer?.Figures ?? EmptyFigures;
+    public Dictionary<IFigure, IFigureGraphicProperties> CurrentLayerFiguresGraphicProperties => SelectedLayer?.FiguresGraphicProperties ?? EmptyFiguresGraphicProperties;
 
     private IFigure? _selectedFigure;
     public IFigure? SelectedFigure
@@ -638,9 +642,11 @@ public sealed class MainWindowViewModel : ViewModelBase
         var a = new Geometry.Point(cx - 100, cy);
         var b = new Geometry.Point(cx + 100, cy);
 
-        var fig = new GraphicLine(a, b, ForegroundColor, 2.0);
+        var fig = new Line(a, b);
+        var figGraphicProperties = new FigureGraphicProperties(ForegroundColor, 2.0);
 
         CurrentLayerFigures.Add(fig);
+        CurrentLayerFiguresGraphicProperties[fig] = figGraphicProperties;
         SelectedFigure = fig;
         IsDirty = true;
     }
@@ -658,9 +664,11 @@ public sealed class MainWindowViewModel : ViewModelBase
             new Geometry.Point(cx - 80, cy + 40),
         };
 
-        var fig = new GraphicPolygon(verts, ForegroundColor, 2.0);
+        var fig = new Polygon(verts);
+        var figGraphicProperties = new FigureGraphicProperties(ForegroundColor, 2.0);
 
         CurrentLayerFigures.Add(fig);
+        CurrentLayerFiguresGraphicProperties[fig] = figGraphicProperties;
         SelectedFigure = fig;
         IsDirty = true;
     }
@@ -670,9 +678,11 @@ public sealed class MainWindowViewModel : ViewModelBase
         var cx = CanvasWidth / 2.0;
         var cy = CanvasHeight / 2.0;
 
-        var fig = new GraphicEllipse(new Geometry.Point(cx, cy), 120, 80, ForegroundColor, 2.0);
+        var fig = new Ellipse(new Geometry.Point(cx, cy), 120, 80);
+        var figGraphicProperties = new FigureGraphicProperties(ForegroundColor, 2.0);
 
         CurrentLayerFigures.Add(fig);
+        CurrentLayerFiguresGraphicProperties[fig] = figGraphicProperties;
         SelectedFigure = fig;
         IsDirty = true;
     }
@@ -731,21 +741,19 @@ public sealed class MainWindowViewModel : ViewModelBase
     private void InitializeDemoFigures()
     {
         // Заготовка на базе Geometry.IFigure
-        CurrentLayerFigures.Add(new GraphicLine(new Geometry.Point(100, 120), new Geometry.Point(360, 180),
-            Colors.CornflowerBlue,
-            2.0
-        ));
+        var line = new Line(new Geometry.Point(100, 120), new Geometry.Point(360, 180));
+        CurrentLayerFigures.Add(line);
+        CurrentLayerFiguresGraphicProperties[line] = new FigureGraphicProperties(Colors.CornflowerBlue, 2.0);
 
-        CurrentLayerFigures.Add(new GraphicPolygon(new[]
+        var polygon = new Polygon(new[]
         {
             new Geometry.Point(420, 260),
             new Geometry.Point(540, 300),
             new Geometry.Point(520, 380),
             new Geometry.Point(430, 360),
-        },
-            Colors.OrangeRed,
-            2.0
-        ));
+        });
+        CurrentLayerFigures.Add(polygon);
+        CurrentLayerFiguresGraphicProperties[polygon] = new FigureGraphicProperties(Colors.OrangeRed, 2.0);
     }
 
     private async Task<bool> ConfirmLoseChangesIfDirtyAsync()

@@ -13,4 +13,17 @@ namespace UI.Models
         Color Color { get; }
         double Thickness { get; }
     }
+
+    public class FigureGraphicProperties : IFigureGraphicProperties
+    {
+        public FigureGraphicProperties(Color color, double thickness)
+        {
+            Color = color;
+            Thickness = thickness;
+        }
+
+        public Color Color { get; }
+
+        public double Thickness { get; }
+    }
 }

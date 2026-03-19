@@ -102,8 +102,9 @@ public sealed class GeometryCanvas : Control
                 }
                 else
                 {
-                    var fig = new GraphicLine(_lineStart, modelPoint, vm.ForegroundColor, 2.0);
+                    var fig = new Line(_lineStart, modelPoint);
                     vm.CurrentLayerFigures.Add(fig);
+                    vm.CurrentLayerFiguresGraphicProperties[fig] = new FigureGraphicProperties(vm.ForegroundColor, 2.0);
                     vm.SelectedFigure = fig;
                     _lineStart = null;
                     vm.IsDirty = true;
@@ -126,8 +127,9 @@ public sealed class GeometryCanvas : Control
                 if (point.Properties.IsRightButtonPressed && _polygonPoints.Count >= 3)
                 {
                     var verts = _polygonPoints.ToArray();
-                    var fig = new GraphicPolygon(verts, vm.ForegroundColor, 2.0);
+                    var fig = new Polygon(verts);
                     vm.CurrentLayerFigures.Add(fig);
+                    vm.CurrentLayerFiguresGraphicProperties[fig] = new FigureGraphicProperties(vm.ForegroundColor, 2.0);
                     vm.SelectedFigure = fig;
                     _polygonPoints.Clear();
                     vm.IsDirty = true;
@@ -151,8 +153,9 @@ public sealed class GeometryCanvas : Control
                     if (rx < 1) rx = 1;
                     if (ry < 1) ry = 1;
 
-                    var fig = new GraphicEllipse(c, rx, ry, vm.ForegroundColor, 2.0);
+                    var fig = new Ellipse(c, rx, ry);
                     vm.CurrentLayerFigures.Add(fig);
+                    vm.CurrentLayerFiguresGraphicProperties[fig] = new FigureGraphicProperties(vm.ForegroundColor, 2.0);
                     vm.SelectedFigure = fig;
                     _ellipseCenter = null;
                     vm.IsDirty = true;
