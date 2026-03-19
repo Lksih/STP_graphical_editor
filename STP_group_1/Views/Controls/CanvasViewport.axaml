@@ -17,6 +17,7 @@
 				  BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
 				  BorderThickness="1">
 				<controls:GeometryCanvas Figures="{Binding VisibleFigures}"
+										FigureGraphicPropertiesMap="{Binding VisibleFiguresGraphicProperties}"
 										SelectedFigure="{Binding SelectedFigure}"
 										ZoomFactor="{Binding ZoomFactor}"
 										Width="{Binding CanvasWidthZoomed}"

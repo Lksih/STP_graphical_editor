@@ -41,12 +41,21 @@ public sealed class GeometryCanvas : Control
         set => SetValue(SelectedFigureProperty, value);
     }
 
+    public static readonly StyledProperty<IReadOnlyDictionary<IFigure, IFigureGraphicProperties>?> FigureGraphicPropertiesMapProperty =
+        AvaloniaProperty.Register<GeometryCanvas, IReadOnlyDictionary<IFigure, IFigureGraphicProperties>?>(nameof(FigureGraphicPropertiesMap));
+
+    public IReadOnlyDictionary<IFigure, IFigureGraphicProperties>? FigureGraphicPropertiesMap
+    {
+        get => GetValue(FigureGraphicPropertiesMapProperty);
+        set => SetValue(FigureGraphicPropertiesMapProperty, value);
+    }
+
     private bool _isDragging;
     private Avalonia.Point _dragStartPointer;
 
     static GeometryCanvas()
     {
-        AffectsRender<GeometryCanvas>(FiguresProperty, ZoomFactorProperty, SelectedFigureProperty);
+        AffectsRender<GeometryCanvas>(FiguresProperty, ZoomFactorProperty, SelectedFigureProperty, FigureGraphicPropertiesMapProperty);
     }
 
     protected override Size MeasureOverride(Size availableSize)
@@ -169,7 +178,7 @@ public sealed class GeometryCanvas : Control
         var color = Colors.CornflowerBlue;
         var thickness = 1.5;
 
-        if (figure is IFigureGraphicProperties props)
+        if (FigureGraphicPropertiesMap is not null && FigureGraphicPropertiesMap.TryGetValue(figure, out var props))
         {
             var c = props.Color;
             color = new Color(c.A, c.R, c.G, c.B);

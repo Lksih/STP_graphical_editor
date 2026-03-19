@@ -337,6 +337,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
 
     public ObservableCollection<Color> RecentColors { get; } = new();
     public ObservableCollection<IFigure> VisibleFigures { get; } = new();
+    public Dictionary<IFigure, IFigureGraphicProperties> VisibleFiguresGraphicProperties { get; } = new();
 
     public bool HasRecentColors => RecentColors.Count > 0;
 
@@ -427,11 +428,16 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
     private void RebuildVisibleFigures()
     {
         VisibleFigures.Clear();
+        VisibleFiguresGraphicProperties.Clear();
 
         foreach (var layer in Layers.Where(l => l.IsVisible))
         {
             foreach (var figure in layer.Figures)
+            {
                 VisibleFigures.Add(figure);
+                if (layer.FiguresGraphicProperties.TryGetValue(figure, out var figureGraphicProperties))
+                    VisibleFiguresGraphicProperties[figure] = figureGraphicProperties;
+            }
         }
     }
 
@@ -886,7 +892,17 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
             new Geometry.Point(430, 360),
         });
         CurrentLayerFigures.Add(polygon);
-        CurrentLayerFiguresGraphicProperties[polygon] = new FigureGraphicProperties(Colors.OrangeRed, 2.0);
+        CurrentLayerFiguresGraphicProperties[polygon] = new FigureGraphicProperties(Colors.Yellow, 2.0);
+
+        var polygon2 = new Polygon(new[]
+        {
+            new Geometry.Point(470, 260),
+            new Geometry.Point(590, 300),
+            new Geometry.Point(570, 380),
+            new Geometry.Point(480, 360),
+        });
+        CurrentLayerFigures.Add(polygon2);
+        CurrentLayerFiguresGraphicProperties[polygon2] = new FigureGraphicProperties(Colors.Red, 2.0);
     }
 
     private async Task<bool> ConfirmLoseChangesIfDirtyAsync()
