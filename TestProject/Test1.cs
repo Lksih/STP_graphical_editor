@@ -60,33 +60,33 @@ namespace TestProject
         }
 
         [TestMethod]
-        public void Ellips_Move_ChangesCenter()
+        public void Ellipse_Move_ChangesCenter()
         {
-            var ellips = new Ellips(new Point(1, 1), 2, 3);
+            var ellipse = new Ellipse(new Point(1, 1), 2, 3);
 
-            ellips.Move(4, -1);
+            ellipse.Move(4, -1);
 
-            Assert.AreEqual(5, ellips.Center.X, 0.0001);
-            Assert.AreEqual(0, ellips.Center.Y, 0.0001);
+            Assert.AreEqual(5, ellipse.Center.X, 0.0001);
+            Assert.AreEqual(0, ellipse.Center.Y, 0.0001);
         }
 
         [TestMethod]
-        public void Ellips_IsIn_CenterPoint_ReturnsTrue()
+        public void Ellipse_IsIn_CenterPoint_ReturnsTrue()
         {
-            var ellips = new Ellips(new Point(0, 0), 5, 3);
+            var ellipse = new Ellipse(new Point(0, 0), 5, 3);
 
-            var result = ellips.IsIn(new Point(0, 0), 0.001);
+            var result = ellipse.IsIn(new Point(0, 0), 0.001);
 
             Assert.IsTrue(result);
         }
 
         [TestMethod]
-        public void Ellips_Scale_WithZero_ThrowsException()
+        public void Ellipse_Scale_WithZero_ThrowsException()
         {
-            var ellips = new Ellips(new Point(0, 0), 5, 3);
+            var ellipse = new Ellipse(new Point(0, 0), 5, 3);
 
             Assert.ThrowsException<IncorrectScaleParameter>(() =>
-                ellips.Scale(0, 2));
+                ellipse.Scale(0, 2));
         }
 
         [TestMethod]
