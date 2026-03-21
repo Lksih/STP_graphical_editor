@@ -123,9 +123,7 @@ namespace Geometry
                     if (cs1 < 0 || cs2 < 0)
                         continue;
             
-                    p_geron = (normpa + normpb + normba) / 2;
-                    s = Math.Sqrt(p_geron * (p_geron - normba)*(p_geron - normpa) * (p_geron - normpb));
-                    h = 2 * s / normba;
+                    h = Math.Abs(p.X * (Vertex[i].Y - Vertex[i+1].Y) + Vertex[i].X * (Vertex[i+1].Y - p.Y) + Vertex[i+1].X * (p.Y - Vertex[i].Y)) / normba;
                     if (h <= eps)
                         return true;
                 }
@@ -143,9 +141,7 @@ namespace Geometry
                 if (cs1 < 0 || cs2 < 0)
                     return false;
             
-                p_geron = (normpa + normpb + normba) / 2;
-                s = Math.Sqrt(p_geron * (p_geron - normba)*(p_geron - normpa) * (p_geron - normpb));
-                h = 2 * s / normba;
+                h = Math.Abs(p.X * (Vertex[0].Y - Vertex[Vertex.Length - 1].Y) + Vertex[0].X * (Vertex[Vertex.Length - 1].Y - p.Y) + Vertex[Vertex.Length - 1].X * (p.Y - Vertex[0].Y)) / normba;
                 return h <= eps;
             }
         }

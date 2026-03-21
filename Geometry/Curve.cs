@@ -134,9 +134,7 @@ namespace Geometry
             if (cs1 < 0 || cs2 < 0)
                 return false;
             
-            double p_geron = (normpa + normpb + normba) / 2,
-            s = Math.Sqrt(p_geron * (p_geron - normba)*(p_geron - normpa) * (p_geron - normpb)),
-            h = 2 * s / normba;
+            double h = Math.Abs(p.X * (a.Y - b.Y) + a.X * (b.Y - p.Y) + b.X * (p.Y - a.Y)) / normba;
             return h <= eps;
         }
     }
