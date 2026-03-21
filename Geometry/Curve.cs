@@ -44,9 +44,10 @@ namespace Geometry
         {
             for (int i = 0; i < VertArray.Length; i++)
             {
-                double x = VertArray[i].X * Math.Cos(angle) - VertArray[i].Y * Math.Sin(angle),
-                y = VertArray[i].X * Math.Sin(angle) + VertArray[i].Y * Math.Cos(angle);
-                VertArray[i] = new Point(x, y);
+                Point dst = VertArray[i] - Center;
+                double x = dst.X * Math.Cos(angle) - dst.Y * Math.Sin(angle),
+                y = dst.X * Math.Sin(angle) + dst.Y * Math.Cos(angle);
+                VertArray[i] = Center + new Point(x, y);
             }
         }
         public void Move(double dx, double dy)
