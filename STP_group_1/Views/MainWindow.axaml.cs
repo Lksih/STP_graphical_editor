@@ -2,6 +2,7 @@ using System;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using STP_group_1.ViewModels;
 
@@ -113,6 +114,12 @@ namespace STP_group_1.Views
 
             vm.MoveLayer(dragged, targetLayer);
             e.Handled = true;
+        }
+
+        private void OnExitMenuClick(object? sender, RoutedEventArgs e)
+        {
+            // Запустит OnClosing
+            Close();
         }
 
         private async void OnClosing(object? sender, WindowClosingEventArgs e)

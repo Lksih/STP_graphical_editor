@@ -16,9 +16,6 @@ public interface IUiDialogService
 
     /// <summary>Returns absolute path or null if cancelled.</summary>
     Task<string?> PickSaveFileAsync(string defaultExtension, string suggestedFileName);
-
-    /// <summary>Requests closing the main window (UI-side responsibility).</summary>
-    void RequestCloseMainWindow();
 }
 
 

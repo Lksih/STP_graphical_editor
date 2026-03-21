@@ -140,8 +140,6 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         OpenCommand = ReactiveCommand.CreateFromTask(Open);
         SaveCommand = ReactiveCommand.CreateFromTask(Save);
         ExportCommand = ReactiveCommand.CreateFromTask(Export);
-        ExitCommand = ReactiveCommand.CreateFromTask(Exit);
-
 
         UndoCommand = ReactiveCommand.Create(Undo);
         RedoCommand = ReactiveCommand.Create(Redo);
@@ -498,7 +496,6 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
     public ReactiveCommand<Unit, Unit> OpenCommand { get; }
     public ReactiveCommand<Unit, Unit> SaveCommand { get; }
     public ReactiveCommand<Unit, Unit> ExportCommand { get; }
-    public ReactiveCommand<Unit, Unit> ExitCommand { get; }
 
     public ReactiveCommand<Unit, Unit> UndoCommand { get; }
     public ReactiveCommand<Unit, Unit> RedoCommand { get; }
@@ -600,14 +597,6 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
             return;
 
         await _io.ExportFlatImageAsync(path);
-    }
-
-    private async Task Exit()
-    {
-        if (!await ConfirmLoseChangesIfDirtyAsync())
-            return;
-
-        _dialogs.RequestCloseMainWindow();
     }
 
     public Task<bool> CanCloseAsync() => ConfirmLoseChangesIfDirtyAsync();

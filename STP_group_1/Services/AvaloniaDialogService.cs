@@ -83,6 +83,4 @@ public sealed class AvaloniaDialogService : IUiDialogService
 
         return file?.TryGetLocalPath();
     }
-
-    public void RequestCloseMainWindow() => _owner.Close();
 }
