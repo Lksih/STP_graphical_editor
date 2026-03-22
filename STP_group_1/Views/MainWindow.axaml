@@ -14,15 +14,14 @@
         Title="STP_group_1">
 
     <Design.DataContext>
-   
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
     <Window.Styles>
-    <Style Selector="ListBox#LayersList ListBoxItem:selected Border">
-        <Setter Property="Background" Value="{DynamicResource SystemControlHighlightListLowBrush}" />
-    </Style>
-</Window.Styles>
+        <Style Selector="ListBox#LayersList ListBoxItem:selected Border">
+            <Setter Property="Background" Value="{DynamicResource SystemControlHighlightListLowBrush}" />
+        </Style>
+    </Window.Styles>
 
     <Window.KeyBindings>
         <KeyBinding Gesture="Ctrl+Z" Command="{Binding UndoCommand}" />
@@ -43,6 +42,7 @@
             <conv:BoolToEyeGlyphConverter x:Key="BoolToEyeGlyph" />
             <conv:BoolToOpacityConverter x:Key="BoolToOpacity" />
         </DockPanel.Resources>
+        
         <!-- Top menu -->
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="_Файл">
@@ -52,7 +52,7 @@
                 <MenuItem Header="_Сохранить" Command="{Binding SaveCommand}" />
                 <MenuItem Header="_Экспорт…" Command="{Binding ExportCommand}" />
                 <Separator/>
-                <MenuItem Header="В_ыход" Click="OnExitMenuClick" />
+                <MenuItem Header="В_ыход" Command="{Binding ExitCommand}" />
             </MenuItem>
             <MenuItem Header="_Система">
                 <MenuItem Header="_Отменить" Command="{Binding UndoCommand}" InputGesture="Ctrl+Z" />
@@ -75,6 +75,16 @@
                 <Button Content="-" Command="{Binding ZoomOutCommand}" />
                 <TextBox Width="70" Text="{Binding ZoomPercentText}" />
                 <Button Content="+" Command="{Binding ZoomInCommand}" />
+                
+                <!-- Undo/Redo descriptions -->
+                <TextBlock Text="{Binding UndoDescription}" 
+                           Margin="10,0" 
+                           Opacity="0.7"
+                           VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding RedoDescription}" 
+                           Margin="10,0" 
+                           Opacity="0.7"
+                           VerticalAlignment="Center"/>
             </StackPanel>
         </Border>
 
@@ -147,96 +157,83 @@
             <DockPanel>
                 <!-- Colors -->
                 <StackPanel DockPanel.Dock="Top" Spacing="10">
-					<TextBlock Text="Активные цвета" FontWeight="SemiBold"/>
+                    <TextBlock Text="Активные цвета" FontWeight="SemiBold"/>
 
-					<StackPanel Orientation="Horizontal" Spacing="8">
-
-						<Button Width="44"
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Width="44"
                                 Height="44"
                                 Padding="0"
                                 ToolTip.Tip="Foreground"
                                 Command="{Binding SelectActiveColorTargetCommand}"
                                 CommandParameter="Foreground">
+                            <Border CornerRadius="6"
+                                    BorderThickness="1"
+                                    BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                    Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
+                                <Border Margin="2"
+                                        CornerRadius="4"
+                                        Background="{Binding ForegroundColor, Converter={StaticResource ColorToBrush}}"/>
+                            </Border>
+                        </Button>
 
-							<Border CornerRadius="6"
-									BorderThickness="1"
-									BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-									Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
-
-								<Border Margin="2"
-										CornerRadius="4"
-										Background="{Binding ForegroundColor, Converter={StaticResource ColorToBrush}}"/>
-
-							</Border>
-
-						</Button>
-
-						<Button Width="44"
+                        <Button Width="44"
                                 Height="44"
                                 Padding="0"
                                 ToolTip.Tip="Background"
                                 Command="{Binding SelectActiveColorTargetCommand}"
                                 CommandParameter="Background">
+                            <Border CornerRadius="6"
+                                    BorderThickness="1"
+                                    BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                    Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
+                                <Border Margin="2"
+                                        CornerRadius="4"
+                                        Background="{Binding CanvasBackground, Converter={StaticResource ColorToBrush}}"/>
+                            </Border>
+                        </Button>
+                    </StackPanel>
 
-							<Border CornerRadius="6"
-									BorderThickness="1"
-									BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-									Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
-
-								<Border Margin="2"
-										CornerRadius="4"
-										Background="{Binding CanvasBackground, Converter={StaticResource ColorToBrush}}"/>
-
-							</Border>
-
-						</Button>
-
-					</StackPanel>
-
-					<Border Margin="0,6,0,0"
+                    <Border Margin="0,6,0,0"
                             Padding="8"
                             CornerRadius="8"
                             BorderThickness="1"
                             BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
                             Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
                             IsVisible="{Binding IsColorPickerVisible}">
+                        <Viewbox Width="210"
+                                 Height="235"
+                                 Stretch="Uniform">
+                            <avc:ColorView Color="{Binding ActiveColor}"
+                                           ColorSpectrumShape="Ring"
+                                           Width="340"
+                                           Height="380"/>
+                        </Viewbox>
+                    </Border>
 
-						<Viewbox Width="210"
-								 Height="235"
-								 Stretch="Uniform">
-							<avc:ColorView Color="{Binding ActiveColor}"
-										   ColorSpectrumShape="Ring"
-										   Width="340"
-										   Height="380"/>
-						</Viewbox>
-
-					</Border>
-
-
-					<TextBlock Text="Предыдущие цвета"
+                    <TextBlock Text="Предыдущие цвета"
                                FontWeight="SemiBold"
                                IsVisible="{Binding HasRecentColors}" />
-					<ItemsControl ItemsSource="{Binding RecentColors}"
-								  IsVisible="{Binding HasRecentColors}">
-						<ItemsControl.ItemsPanel>
-							<ItemsPanelTemplate>
-								<WrapPanel ItemWidth="26" ItemHeight="26" />
-							</ItemsPanelTemplate>
-						</ItemsControl.ItemsPanel>
-						<ItemsControl.ItemTemplate>
-							<DataTemplate>
-								<Button Width="24"
-										Height="24"
-										Padding="0"
-										CornerRadius="4"
-										BorderThickness="1"
-										BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-										Background="{Binding ., Converter={StaticResource ColorToBrush}}"
-										Command="{Binding $parent[Window].DataContext.ApplyRecentColorCommand}"
-										CommandParameter="{Binding .}" />
-							</DataTemplate>
-						</ItemsControl.ItemTemplate>
-					</ItemsControl>
+                    <ItemsControl ItemsSource="{Binding RecentColors}"
+                                  IsVisible="{Binding HasRecentColors}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel ItemWidth="26" ItemHeight="26" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Width="24"
+                                        Height="24"
+                                        Padding="0"
+                                        CornerRadius="4"
+                                        BorderThickness="1"
+                                        BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                        Background="{Binding ., Converter={StaticResource ColorToBrush}}"
+                                        Command="{Binding $parent[Window].DataContext.ApplyRecentColorCommand}"
+                                        CommandParameter="{Binding .}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
 
                     <Separator/>
                 </StackPanel>
@@ -319,5 +316,4 @@
         <!-- Center canvas -->
         <controls:CanvasViewport />
     </DockPanel>
-
 </Window>
