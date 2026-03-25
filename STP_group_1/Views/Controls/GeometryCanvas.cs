@@ -55,12 +55,21 @@ public sealed class GeometryCanvas : Control
         set => SetValue(FigureGraphicPropertiesMapProperty, value);
     }
 
+    public static readonly StyledProperty<IBrush?> BackgroundProperty =
+    AvaloniaProperty.Register<GeometryCanvas, IBrush?>(nameof(Background));
+
+    public IBrush? Background
+    {
+        get => GetValue(BackgroundProperty);
+        set => SetValue(BackgroundProperty, value);
+    }
+
     private bool _isDragging;
     private Avalonia.Point _dragStartPointer;
 
     static GeometryCanvas()
     {
-        AffectsRender<GeometryCanvas>(FiguresProperty, ZoomFactorProperty, SelectedFigureProperty, FigureGraphicPropertiesMapProperty);
+        AffectsRender<GeometryCanvas>(FiguresProperty, ZoomFactorProperty, SelectedFigureProperty, FigureGraphicPropertiesMapProperty, BackgroundProperty);
     }
 
     protected override Size MeasureOverride(Size availableSize)
@@ -163,6 +172,11 @@ public sealed class GeometryCanvas : Control
 
     public override void Render(DrawingContext context)
     {
+        if (Background != null)
+        {
+            context.FillRectangle(Background, new Rect(0, 0, Bounds.Width, Bounds.Height));
+        }
+
         base.Render(context);
 
         var figures = Figures;
