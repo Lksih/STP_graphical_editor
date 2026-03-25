@@ -1,8 +1,9 @@
-﻿using System;
+﻿using Geometry;
+using ReactiveUI;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using Geometry;
-using ReactiveUI;
+using UI.Models;
 
 namespace STP_group_1.ViewModels
 {
@@ -179,13 +180,17 @@ namespace STP_group_1.ViewModels
     public class DeleteFigureCommand : IUndoRedoCommand
     {
         private readonly System.Collections.ObjectModel.ObservableCollection<IFigure> _figures;
+        Dictionary<IFigure, IFigureGraphicProperties> _figuresGraphicProperties;
+        IFigureGraphicProperties _currentFigureGraphicProperties;
         private readonly IFigure _figure;
         private readonly int _index;
         private readonly MainWindowViewModel? _viewModel;
-        public DeleteFigureCommand(System.Collections.ObjectModel.ObservableCollection<IFigure> figures, IFigure figure)
+        public DeleteFigureCommand(System.Collections.ObjectModel.ObservableCollection<IFigure> figures, Dictionary<IFigure, IFigureGraphicProperties> figuresGraphicProperties, IFigure figure)
         {
             _figures = figures;
             _figure = figure;
+            _figuresGraphicProperties = figuresGraphicProperties;
+            _currentFigureGraphicProperties = _figuresGraphicProperties[_figure];
             _index = figures.IndexOf(figure);
         }
 
@@ -193,11 +198,13 @@ namespace STP_group_1.ViewModels
 
         public void Execute()
         {
+            _figuresGraphicProperties.Remove(_figure);
             _figures.Remove(_figure);
         }
 
         public void Undo()
         {
+            _figuresGraphicProperties[_figure] = _currentFigureGraphicProperties;
             if (_index >= 0 && _index <= _figures.Count)
                 _figures.Insert(_index, _figure);
             else

@@ -643,8 +643,9 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         if (SelectedFigure is null)
             return;
 
-        CurrentLayerFiguresGraphicProperties.Remove(SelectedFigure);
-        CurrentLayerFigures.Remove(SelectedFigure);
+        var command = new DeleteFigureCommand(CurrentLayerFigures, CurrentLayerFiguresGraphicProperties, SelectedFigure);
+        ExecuteCommand(command);
+
         SelectedFigure = null;
         IsDirty = true;
     }
@@ -855,7 +856,8 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         {
             if (CurrentLayerFigures.Contains(hit))
             {
-                RemoveFigureFromCurrentLayer(hit);
+                //RemoveFigureFromCurrentLayer(hit);
+                DeleteSelectedFigure();
                 if (ReferenceEquals(SelectedFigure, hit))
                     SelectedFigure = null;
                 IsDirty = true;
