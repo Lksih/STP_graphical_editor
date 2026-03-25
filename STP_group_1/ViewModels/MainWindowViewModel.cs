@@ -177,10 +177,6 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         DeleteSelectedFigureCommand = ReactiveCommand.Create(DeleteSelectedFigure);
         RotateSelectedFigureCommand = ReactiveCommand.Create(RotateSelectedFigure);
 
-        AddLineCommand = ReactiveCommand.Create(AddLine);
-        AddPolygonCommand = ReactiveCommand.Create(AddPolygon);
-        AddEllipseCommand = ReactiveCommand.Create(AddEllipse);
-
         SelectThemeCommand = ReactiveCommand.Create<string?>(SelectTheme);
 
         NewLayerCommand = ReactiveCommand.Create(NewLayer);
@@ -665,59 +661,14 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         IsDirty = true;
     }
 
-    private void AddLine()
+    private void AddNewFigure(IFigure figure)
     {
-        var cx = CanvasWidth / 2.0;
-        var cy = CanvasHeight / 2.0;
+        var figureGraphicProperties = new FigureGraphicProperties(ForegroundColor, 2.0);
 
-        var a = new Geometry.Point(cx - 100, cy);
-        var b = new Geometry.Point(cx + 100, cy);
-
-        var fig = new Line(a, b);
-        var figGraphicProperties = new FigureGraphicProperties(ForegroundColor, 2.0);
-
-        var command = new AddFigureCommand(CurrentLayerFigures, CurrentLayerFiguresGraphicProperties, fig, figGraphicProperties);
+        var command = new AddFigureCommand(CurrentLayerFigures, CurrentLayerFiguresGraphicProperties, figure, figureGraphicProperties);
         ExecuteCommand(command);
 
-        SelectedFigure = fig;
-        IsDirty = true;
-    }
-
-    private void AddPolygon()
-    {
-        var cx = CanvasWidth / 2.0;
-        var cy = CanvasHeight / 2.0;
-
-        var verts = new[]
-        {
-            new Geometry.Point(cx, cy - 80),
-            new Geometry.Point(cx + 80, cy + 40),
-            new Geometry.Point(cx, cy + 80),
-            new Geometry.Point(cx - 80, cy + 40),
-        };
-
-        var fig = new Polygon(verts);
-        var figGraphicProperties = new FigureGraphicProperties(ForegroundColor, 2.0);
-
-        var command = new AddFigureCommand(CurrentLayerFigures, CurrentLayerFiguresGraphicProperties, fig, figGraphicProperties);
-        ExecuteCommand(command);
-
-        SelectedFigure = fig;
-        IsDirty = true;
-    }
-
-    private void AddEllipse()
-    {
-        var cx = CanvasWidth / 2.0;
-        var cy = CanvasHeight / 2.0;
-
-        var fig = new Ellipse(new Geometry.Point(cx, cy), 120, 80);
-        var figGraphicProperties = new FigureGraphicProperties(ForegroundColor, 2.0);
-
-        var command = new AddFigureCommand(CurrentLayerFigures, CurrentLayerFiguresGraphicProperties, fig, figGraphicProperties);
-        ExecuteCommand(command);
-
-        SelectedFigure = fig;
+        SelectedFigure = figure;
         IsDirty = true;
     }
 
@@ -794,11 +745,8 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
                 }
                 else
                 {
-                    var fig = new Line(_lineStart, modelPoint);
-                    AddFigureToCurrentLayer(fig, new FigureGraphicProperties(ForegroundColor, 2.0));
-                    SelectedFigure = fig;
+                    AddNewFigure(new Line(_lineStart, modelPoint));
                     _lineStart = null;
-                    IsDirty = true;
                 }
 
                 return true;
@@ -814,12 +762,8 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
 
                 if (isRightButtonPressed && _polygonPoints.Count >= 3)
                 {
-                    var verts = _polygonPoints.ToArray();
-                    var fig = new Polygon(verts);
-                    AddFigureToCurrentLayer(fig, new FigureGraphicProperties(ForegroundColor, 2.0));
-                    SelectedFigure = fig;
+                    AddNewFigure(new Polygon(_polygonPoints.ToArray()));
                     _polygonPoints.Clear();
-                    IsDirty = true;
                     return true;
                 }
             }
@@ -838,11 +782,8 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
                     if (rx < 1) rx = 1;
                     if (ry < 1) ry = 1;
 
-                    var fig = new Ellipse(c, rx, ry);
-                    AddFigureToCurrentLayer(fig, new FigureGraphicProperties(ForegroundColor, 2.0));
-                    SelectedFigure = fig;
+                    AddNewFigure(new Ellipse(c, rx, ry));
                     _ellipseCenter = null;
-                    IsDirty = true;
                 }
 
                 return true;
