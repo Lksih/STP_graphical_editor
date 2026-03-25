@@ -118,7 +118,7 @@ namespace STP_group_1.Views
 
         private void OnExitMenuClick(object? sender, RoutedEventArgs e)
         {
-            // Запустит OnClosing
+            // Р—Р°РїСѓСЃС‚РёС‚ OnClosing
             Close();
         }
 
