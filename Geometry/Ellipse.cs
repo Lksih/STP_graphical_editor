@@ -52,8 +52,8 @@ namespace Geometry
             double x = dst.X * Math.Cos(-Angle) - dst.Y * Math.Sin(-Angle),
                 y = dst.X * Math.Sin(-Angle) + dst.Y * Math.Cos(-Angle);
             dst = new Point(x, y);
-            double angle = Math.Atan2(dst.X, dst.Y), r = Rx*Ry / Math.Sqrt(Math.Pow(Ry * Math.Cos(angle), 2) + Math.Pow(Rx * Math.Sin(angle), 2)), 
-            distance = Math.Sqrt(Math.Pow(dst.X, 2) + Math.Pow(dst.Y, 2));
+            double distance = Math.Sqrt(Math.Pow(dst.X, 2) + Math.Pow(dst.Y, 2)), 
+            r = Rx*Ry / Math.Sqrt(Math.Pow(Ry * dst.X / distance, 2) + Math.Pow(Rx * dst.Y / distance, 2));
             return distance <= r + eps;
         }
     }
