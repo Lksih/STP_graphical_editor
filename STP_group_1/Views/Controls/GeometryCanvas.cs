@@ -237,8 +237,7 @@ public sealed class GeometryCanvas : Control
         else
         {
             var centerPt = new Avalonia.Point(center.X * ZoomFactor, center.Y * ZoomFactor);
-            const double radius = 12;
-            ctx.DrawEllipse(null, pen, centerPt, radius, radius);
+            ctx.DrawEllipse(null, pen, centerPt, verts[0].X, verts[0].Y);
         }
     }
 }

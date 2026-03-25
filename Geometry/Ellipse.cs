@@ -5,7 +5,7 @@ namespace Geometry
     public class Ellipse : IFigure
     {
         public Point Center { get; set;} //Эллипс задаётся своим центром
-        public ReadOnlySpan<Point> Vertex => []; 
+        public ReadOnlySpan<Point> Vertex => new Point[] { new Point(Rx, Ry) }; 
         double Rx, Ry, Angle; //А также радиусами по X и Y
 
         public Ellipse(Point c, double rx, double ry) //Соответственно, одна точка и два числа
