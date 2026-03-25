@@ -1,5 +1,7 @@
 using Avalonia;
+using Avalonia.Input;
 using Avalonia.Media;
+using Avalonia.Remote.Protocol.Input;
 using Avalonia.Styling;
 using Avalonia.VisualTree;
 using DynamicData;
@@ -36,7 +38,7 @@ public enum ActiveColorTarget
 
 public interface ICanvasInteractionHandler
 {
-    bool HandleCanvasPointerPressed(Geometry.Point modelPoint, bool isLeftButtonPressed, bool isRightButtonPressed, double hitTolerance, IEnumerable<IFigure> figures, out bool shouldStartDragging);
+    bool HandleCanvasPointerPressed(Geometry.Point modelPoint, bool isLeftButtonPressed, bool isRightButtonPressed, KeyModifiers modifiers, double hitTolerance, IEnumerable<IFigure> figures, out bool shouldStartDragging);
     void HandleCanvasDragDelta(double dx, double dy);
 }
 
@@ -731,7 +733,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         MoveLayer(from, to);
     }
 
-    public bool HandleCanvasPointerPressed(Geometry.Point modelPoint, bool isLeftButtonPressed, bool isRightButtonPressed, double hitTolerance, IEnumerable<IFigure> figures, out bool shouldStartDragging)
+    public bool HandleCanvasPointerPressed(Geometry.Point modelPoint, bool isLeftButtonPressed, bool isRightButtonPressed, KeyModifiers modifiers, double hitTolerance, IEnumerable<IFigure> figures, out bool shouldStartDragging)
     {
         shouldStartDragging = false;
 
@@ -781,6 +783,9 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
                     var ry = Math.Abs(modelPoint.Y - c.Y);
                     if (rx < 1) rx = 1;
                     if (ry < 1) ry = 1;
+
+                    if (modifiers.HasFlag(KeyModifiers.Shift))
+                        rx = ry = Math.Max(Math.Abs(rx), Math.Abs(ry));
 
                     AddNewFigure(new Ellipse(c, rx, ry));
                     _ellipseCenter = null;
