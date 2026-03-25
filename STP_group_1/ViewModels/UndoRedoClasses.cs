@@ -130,23 +130,29 @@ namespace STP_group_1.ViewModels
     public class AddFigureCommand : IUndoRedoCommand
     {
         private readonly System.Collections.ObjectModel.ObservableCollection<IFigure> _figures;
+        private readonly Dictionary<IFigure, IFigureGraphicProperties> _figuresGraphicProperties;
+        private readonly IFigureGraphicProperties _currentFigureGraphicProperties;
         private readonly IFigure _figure;
 
-        public AddFigureCommand(System.Collections.ObjectModel.ObservableCollection<IFigure> figures, IFigure figure)
+        public AddFigureCommand(System.Collections.ObjectModel.ObservableCollection<IFigure> figures, Dictionary<IFigure, IFigureGraphicProperties> figuresGraphicProperties, IFigure figure, IFigureGraphicProperties figureGraphicProperties)
         {
             _figures = figures;
             _figure = figure;
+            _figuresGraphicProperties = figuresGraphicProperties;
+            _currentFigureGraphicProperties = figureGraphicProperties;
         }
 
         public string Description => $"Добавить {_figure.GetType().Name}";
 
         public void Execute()
         {
+            _figuresGraphicProperties[_figure] = _currentFigureGraphicProperties;
             _figures.Add(_figure);
         }
 
         public void Undo()
         {
+            _figuresGraphicProperties.Remove(_figure);
             _figures.Remove(_figure);
         }
     }
@@ -180,8 +186,8 @@ namespace STP_group_1.ViewModels
     public class DeleteFigureCommand : IUndoRedoCommand
     {
         private readonly System.Collections.ObjectModel.ObservableCollection<IFigure> _figures;
-        Dictionary<IFigure, IFigureGraphicProperties> _figuresGraphicProperties;
-        IFigureGraphicProperties _currentFigureGraphicProperties;
+        private readonly Dictionary<IFigure, IFigureGraphicProperties> _figuresGraphicProperties;
+        private readonly IFigureGraphicProperties _currentFigureGraphicProperties;
         private readonly IFigure _figure;
         private readonly int _index;
         private readonly MainWindowViewModel? _viewModel;

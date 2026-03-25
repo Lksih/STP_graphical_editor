@@ -659,7 +659,9 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         const double stepDegrees = 15.0;
         var angle = Math.PI * stepDegrees / 180.0;
 
-        SelectedFigure.Rotate(angle);
+        var command = new RotateFigureCommand(SelectedFigure, angle);
+        ExecuteCommand(command);
+
         IsDirty = true;
     }
 
@@ -674,7 +676,9 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         var fig = new Line(a, b);
         var figGraphicProperties = new FigureGraphicProperties(ForegroundColor, 2.0);
 
-        AddFigureToCurrentLayer(fig, figGraphicProperties);
+        var command = new AddFigureCommand(CurrentLayerFigures, CurrentLayerFiguresGraphicProperties, fig, figGraphicProperties);
+        ExecuteCommand(command);
+
         SelectedFigure = fig;
         IsDirty = true;
     }
@@ -695,7 +699,9 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         var fig = new Polygon(verts);
         var figGraphicProperties = new FigureGraphicProperties(ForegroundColor, 2.0);
 
-        AddFigureToCurrentLayer(fig, figGraphicProperties);
+        var command = new AddFigureCommand(CurrentLayerFigures, CurrentLayerFiguresGraphicProperties, fig, figGraphicProperties);
+        ExecuteCommand(command);
+
         SelectedFigure = fig;
         IsDirty = true;
     }
@@ -708,7 +714,9 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         var fig = new Ellipse(new Geometry.Point(cx, cy), 120, 80);
         var figGraphicProperties = new FigureGraphicProperties(ForegroundColor, 2.0);
 
-        AddFigureToCurrentLayer(fig, figGraphicProperties);
+        var command = new AddFigureCommand(CurrentLayerFigures, CurrentLayerFiguresGraphicProperties, fig, figGraphicProperties);
+        ExecuteCommand(command);
+
         SelectedFigure = fig;
         IsDirty = true;
     }
