@@ -116,6 +116,7 @@ public sealed class GeometryCanvas : Control
             modelPoint,
             point.Properties.IsLeftButtonPressed,
             point.Properties.IsRightButtonPressed,
+            e.KeyModifiers,
             eps,
             figures,
             out var shouldStartDragging);
