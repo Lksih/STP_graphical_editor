@@ -905,10 +905,8 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
                 // завершение ввода правой кнопкой
                 if (isRightButtonPressed)
                 {
-                    // `CurvedPolygon` требует четное число точек, а проектная сериализация
-                    // дополнительно ожидает кратность 3.
                     var count = _curvedPolygonPoints.Count;
-                    if (count >= 6 && count % 2 == 0 && count % 3 == 0)
+                    if (count >= 4 && count % 2 == 0)
                     {
                         AddNewFigure(new CurvedPolygon(_curvedPolygonPoints.ToArray()));
                         _curvedPolygonPoints.Clear();

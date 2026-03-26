@@ -108,9 +108,9 @@ public static class FigureJsonIo
     private static Point[] RequireCurvedPolygonPoints(FigureDto dto)
     {
         var points = dto.Points?.Select(p => p.ToGeometryPoint()).ToArray();
-        if (points is null || points.Length < 6 || points.Length % 3 != 0)
+        if (points is null || points.Length < 4 || points.Length % 2 != 0)
         {
-            throw new InvalidDataException("Figure 'CurvedPolygon' must contain at least 6 points and the points count must be divisible by 3.");
+            throw new InvalidDataException("Figure 'CurvedPolygon' must contain at least 4 points and the points count must be divisible by 2.");
         }
 
         return points;
