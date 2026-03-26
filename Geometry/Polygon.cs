@@ -17,7 +17,7 @@ namespace Geometry
             VertArray = [.. Verts];
             foreach (var vert in VertArray)
                 Center += vert;
-            Center *= 1 / VertArray.Length;
+            Center *= 1.0 / VertArray.Length;
         }
         public void Scale(double dx, double dy)
         {
@@ -44,9 +44,10 @@ namespace Geometry
         {
             for (int i = 0; i < VertArray.Length; i++)
             {
-                double x = VertArray[i].X * Math.Cos(angle) - VertArray[i].Y * Math.Sin(angle),
-                y = VertArray[i].X * Math.Sin(angle) + VertArray[i].Y * Math.Cos(angle);
-                VertArray[i] = new Point(x, y);
+                Point dst = VertArray[i] - Center;
+                double x = dst.X * Math.Cos(angle) - dst.Y * Math.Sin(angle),
+                y = dst.X * Math.Sin(angle) + dst.Y * Math.Cos(angle);
+                VertArray[i] = Center + new Point(x, y);
             }
         }
         public void Move(double dx, double dy)
@@ -64,7 +65,7 @@ namespace Geometry
             Center = new Point(0, 0);
             foreach (var vert in VertArray)
                 Center += vert;
-            Center *= 1 / VertArray.Length;
+            Center *= 1.0 / VertArray.Length;
         }
         public IEnumerable<IDrawFigure> Draw() => throw new NotImplementedException();
         public bool IsIn(Point p, double eps)
@@ -76,19 +77,19 @@ namespace Geometry
             Point dif1 = VertArray[0] - p, dif2 = VertArray[VertArray.Length - 1] - p;
             if (dif1.X == 0 && dif1.Y == 0 || dif2.X == 0 && dif2.Y == 0)
                 return true;
-            double angle = Math.Acos((dif1.X * dif2.Y + dif1.Y * dif2.X) / 
+            double angle = Math.Acos((dif1.X * dif2.X + dif1.Y * dif2.Y) / 
             Math.Sqrt((Math.Pow(dif1.X, 2) + Math.Pow(dif1.Y, 2))*(Math.Pow(dif2.X, 2) + Math.Pow(dif2.Y, 2))));
             summ += angle;
             double pseudonorm = dif1.X * dif2.Y - dif1.Y * dif2.X;
             if (pseudonorm != 0)
                 sgn = pseudonorm / Math.Abs(pseudonorm);
-            for (int i = 0; i < VertArray.Length - 1; i++)
+            for (int i = 1; i < VertArray.Length; i++)
             {
                 dif1 = VertArray[i] - p;
-                dif2 = VertArray[i + 1] - p;
+                dif2 = VertArray[i - 1] - p;
                 if (dif1.X == 0 && dif1.Y == 0 || dif2.X == 0 && dif2.Y == 0)
                     return true;
-                angle = Math.Acos((dif1.X * dif2.Y + dif1.Y * dif2.X) / 
+                angle = Math.Acos((dif1.X * dif2.X + dif1.Y * dif2.Y) / 
                 Math.Sqrt((Math.Pow(dif1.X, 2) + Math.Pow(dif1.Y, 2))*(Math.Pow(dif2.X, 2) + Math.Pow(dif2.Y, 2))));
                 pseudonorm = dif1.X * dif2.Y - dif1.Y * dif2.X;
                 if (pseudonorm != 0)
@@ -120,12 +121,10 @@ namespace Geometry
                     normba = Math.Sqrt(Math.Pow(difba.X, 2) + Math.Pow(difba.Y, 2));
                     cs1 = (difpa.X * difba.Y + difpa.Y * difba.X) / (normpa*normba); 
                     cs2 = (difpb.X * (-difba.Y) + difpb.Y * (-difba.X)) / (normpb*normba);
-                    if (cs1 >= 0 || cs2 >= 0)
+                    if (cs1 < 0 || cs2 < 0)
                         continue;
             
-                    p_geron = (normpa + normpb + normba) / 2;
-                    s = Math.Sqrt(p_geron * (p_geron - normba)*(p_geron - normpa) * (p_geron - normpb));
-                    h = 2 * s / normba;
+                    h = Math.Abs(p.X * (Vertex[i].Y - Vertex[i+1].Y) + Vertex[i].X * (Vertex[i+1].Y - p.Y) + Vertex[i+1].X * (p.Y - Vertex[i].Y)) / normba;
                     if (h <= eps)
                         return true;
                 }
@@ -140,12 +139,10 @@ namespace Geometry
                 normba = Math.Sqrt(Math.Pow(difba.X, 2) + Math.Pow(difba.Y, 2));
                 cs1 = (difpa.X * difba.Y + difpa.Y * difba.X) / (normpa*normba);
                 cs2 = (difpb.X * (-difba.Y) + difpb.Y * (-difba.X)) / (normpb*normba);
-                if (cs1 >= 0 || cs2 >= 0)
+                if (cs1 < 0 || cs2 < 0)
                     return false;
             
-                p_geron = (normpa + normpb + normba) / 2;
-                s = Math.Sqrt(p_geron * (p_geron - normba)*(p_geron - normpa) * (p_geron - normpb));
-                h = 2 * s / normba;
+                h = Math.Abs(p.X * (Vertex[0].Y - Vertex[Vertex.Length - 1].Y) + Vertex[0].X * (Vertex[Vertex.Length - 1].Y - p.Y) + Vertex[Vertex.Length - 1].X * (p.Y - Vertex[0].Y)) / normba;
                 return h <= eps;
             }
         }

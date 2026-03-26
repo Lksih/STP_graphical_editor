@@ -17,7 +17,7 @@ namespace Geometry
             VertArray = [.. Verts];
             foreach (var vert in VertArray)
                 Center += vert;
-            Center *= 1 / VertArray.Length;
+            Center *= 1.0 / VertArray.Length;
         }
         public void Scale(double dx, double dy)
         {
@@ -44,9 +44,10 @@ namespace Geometry
         {
             for (int i = 0; i < VertArray.Length; i++)
             {
-                double x = VertArray[i].X * Math.Cos(angle) - VertArray[i].Y * Math.Sin(angle),
-                y = VertArray[i].X * Math.Sin(angle) + VertArray[i].Y * Math.Cos(angle);
-                VertArray[i] = new Point(x, y);
+                Point dst = VertArray[i] - Center;
+                double x = dst.X * Math.Cos(angle) - dst.Y * Math.Sin(angle),
+                y = dst.X * Math.Sin(angle) + dst.Y * Math.Cos(angle);
+                VertArray[i] = Center + new Point(x, y);
             }
         }
         public void Move(double dx, double dy)
@@ -64,7 +65,7 @@ namespace Geometry
             Center = new Point(0, 0);
             foreach (var vert in VertArray)
                 Center += vert;
-            Center *= 1 / VertArray.Length;
+            Center *= 1.0 / VertArray.Length;
         }
         public IEnumerable<IDrawFigure> Draw() => throw new NotImplementedException();
         public bool IsIn(Point p, double eps) // через аппроксимацию отрезками
@@ -131,12 +132,10 @@ namespace Geometry
             double normba = Math.Sqrt(Math.Pow(difba.X, 2) + Math.Pow(difba.Y, 2)), 
             cs1 = (difpa.X * difba.Y + difpa.Y * difba.X) / (normpa*normba), 
             cs2 = (difpb.X * (-difba.Y) + difpb.Y * (-difba.X)) / (normpb*normba);
-            if (cs1 >= 0 || cs2 >= 0)
+            if (cs1 < 0 || cs2 < 0)
                 return false;
             
-            double p_geron = (normpa + normpb + normba) / 2,
-            s = Math.Sqrt(p_geron * (p_geron - normba)*(p_geron - normpa) * (p_geron - normpb)),
-            h = 2 * s / normba;
+            double h = Math.Abs(p.X * (a.Y - b.Y) + a.X * (b.Y - p.Y) + b.X * (p.Y - a.Y)) / normba;
             return h <= eps;
         }
     }
