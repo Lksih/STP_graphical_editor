@@ -650,7 +650,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         if (path is null)
             return;
 
-        var figures = await _io.OpenNativeProjectAsync(path);
+        var (figures, figuresGraphicProperties) = await _io.OpenNativeProjectAsync(path);
         if (figures.Count == 0)
             return;
 
@@ -666,6 +666,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
 
         foreach (var figure in figures)
         {
+            layer.FiguresGraphicProperties[figure] = figuresGraphicProperties[figure];
             layer.Figures.Add(figure);
         }
 
@@ -685,7 +686,11 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         }
 
         var allFigures = Layers.SelectMany(layer => layer.Figures);
-        await _io.SaveNativeProjectAsync(path, allFigures);
+        var allProperties = Layers
+            .SelectMany(layer => layer.FiguresGraphicProperties)
+            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+        await _io.SaveNativeProjectAsync(path, allFigures, allProperties);
         IsDirty = false;
     }
 
@@ -699,6 +704,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         var allProperties = Layers
             .SelectMany(layer => layer.FiguresGraphicProperties)
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
         await _io.ExportFlatImageAsync(path, allFigures, allProperties);
     }
 

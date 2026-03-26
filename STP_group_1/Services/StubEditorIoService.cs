@@ -9,9 +9,9 @@ namespace STP_group_1.Services;
 
 public sealed class StubEditorIoService : IEditorIoService
 {
-    public async Task SaveNativeProjectAsync(string path, IEnumerable<IFigure> figures)
+    public async Task SaveNativeProjectAsync(string path, IEnumerable<IFigure> figures, Dictionary<IFigure, IFigureGraphicProperties> styles)
     {
-        await FigureJsonIo.SaveFiguresAsync(figures, path);
+        await FigureJsonIo.SaveFiguresAsync(figures, styles, path);
     }
 
     public Task ExportFlatImageAsync(string filePath, IEnumerable<IFigure> figures, Dictionary<IFigure, IFigureGraphicProperties> figuresGraphicProperties)
@@ -20,7 +20,7 @@ public sealed class StubEditorIoService : IEditorIoService
         return Task.CompletedTask;
     }
 
-    public async Task<IReadOnlyList<IFigure>> OpenNativeProjectAsync(string path)
+    public async Task<(IReadOnlyList<IFigure> Figures, Dictionary<IFigure, IFigureGraphicProperties> Styles)> OpenNativeProjectAsync(string path)
     {
         return await FigureJsonIo.LoadFiguresAsync(path);
     }
