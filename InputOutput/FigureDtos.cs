@@ -1,4 +1,6 @@
+using Avalonia.Media;
 using Geometry;
+using Geometry.Graphic;
 
 namespace InputOutput;
 
@@ -14,6 +16,7 @@ internal sealed class FigureDto
     // ── Style ──
     public ColorDto? StrokeColor { get; init; }
     public double? StrokeThickness { get; init; }
+    public ColorDto? FillColor { get; init; }
 }
 
 internal sealed class PointDto
@@ -33,4 +36,18 @@ internal sealed class ColorDto
     public byte G { get; init; }
     public byte B { get; init; }
     public byte A { get; init; } = 255;
+}
+
+public class ExtendedGraphicProperties : IFigureGraphicProperties
+{
+    public Color Color { get; }
+    public double Thickness { get; }
+    public Color? FillColor { get; }
+
+    public ExtendedGraphicProperties(Color strokeColor, double thickness, Color? fillColor = null)
+    {
+        Color = strokeColor;
+        Thickness = thickness;
+        FillColor = fillColor;
+    }
 }

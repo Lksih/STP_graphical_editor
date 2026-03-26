@@ -12,9 +12,6 @@ using SdColor = System.Drawing.Color;
 
 namespace InputOutput
 {
-    /// <summary>
-    /// Реестр сериализаторов фигур для SVG.
-    /// </summary>
     public static class FigureSerializers
     {
         private static readonly Dictionary<Type, IFigureSerializer> _serializers = new();
@@ -47,9 +44,6 @@ namespace InputOutput
 
     public static class SVGConverter
     {
-        /// <summary>
-        /// Универсальное сохранение: SVG или растр (PNG/JPG/BMP) по расширению.
-        /// </summary>
         public static void Save(
             IEnumerable<IFigure> figures,
             Dictionary<IFigure, IFigureGraphicProperties> styles,
@@ -60,18 +54,11 @@ namespace InputOutput
             string ext = Path.GetExtension(filePath).TrimStart('.').ToLower();
 
             if (ext == "svg")
-            {
                 SaveSvg(figures, styles, filePath);
-            }
             else
-            {
                 ExportToBitmap(figures, styles, filePath, width, height);
-            }
         }
 
-        /// <summary>
-        /// Сохранение в SVG-файл.
-        /// </summary>
         public static void SaveSvg(
             IEnumerable<IFigure> figures,
             Dictionary<IFigure, IFigureGraphicProperties> styles,
@@ -100,9 +87,6 @@ namespace InputOutput
             doc.Save(filePath);
         }
 
-        /// <summary>
-        /// Загрузка фигур и стилей из SVG-файла.
-        /// </summary>
         public static (List<IFigure> Figures, Dictionary<IFigure, IFigureGraphicProperties> Styles) Load(
             string filePath)
         {
@@ -138,10 +122,6 @@ namespace InputOutput
             return (figures, styles);
         }
 
-        /// <summary>
-        /// Экспорт в растровый формат (PNG, JPG, BMP).
-        /// Отдельный публичный метод.
-        /// </summary>
         public static void ExportToBitmap(
             IEnumerable<IFigure> figures,
             Dictionary<IFigure, IFigureGraphicProperties> styles,
@@ -162,12 +142,6 @@ namespace InputOutput
             }
         }
 
-        // ── private ────────────────────────────────────────────
-
-        /// <summary>
-        /// Выбор сериализатора по XML-узлу.
-        /// Для &lt;path&gt; смотрим data-type, чтобы отл��чить Curve от CurvedPolygon.
-        /// </summary>
         private static IFigureSerializer? ResolveSerializer(XmlNode node)
         {
             if (node.Name == "path")
@@ -198,7 +172,6 @@ namespace InputOutput
             string ext = Path.GetExtension(outputPath)
                 .TrimStart('.').ToLower();
 
-            // jpg → image/jpeg (MIME не совпадает с расширением)
             string mimeType = ext switch
             {
                 "jpg" or "jpeg" => "image/jpeg",
@@ -219,10 +192,6 @@ namespace InputOutput
         }
     }
 
-    // ════════════════════════════════════════════════════════════
-    //  Интерфейс сериализатора
-    // ════════════════════════════════════════════════════════════
-
     public interface IFigureSerializer
     {
         string SvgTagName { get; }
@@ -231,22 +200,11 @@ namespace InputOutput
         IFigure FromXml(XmlNode node);
     }
 
-    // ════════════════════════════════════════════════════════════
-    //  Работа со стилями (stroke / stroke-width / stroke-opacity)
-    // ════════════════════════════════════════════════════════════
-
     internal static class StyleHelper
     {
-        /// <summary>
-        /// AvColor → #RRGGBB (стандартный SVG-формат).
-        /// Альфа пишется отдельным атрибутом stroke-opacity.
-        /// </summary>
         public static string ColorToHex(AvColor c) =>
             $"#{c.R:X2}{c.G:X2}{c.B:X2}";
 
-        /// <summary>
-        /// Разбор SVG-цвета: #RRGGBB, #RGB, rgb(), rgba(), named colors.
-        /// </summary>
         public static AvColor ParseColor(string s)
         {
             if (string.IsNullOrWhiteSpace(s) || s == "none")
@@ -277,7 +235,6 @@ namespace InputOutput
                     return AvColor.FromArgb(255, r, g, b);
                 }
 
-                // #RRGGBB, #RGB, named → через System.Drawing
                 var sd = System.Drawing.ColorTranslator.FromHtml(s);
                 return AvColor.FromArgb(sd.A, sd.R, sd.G, sd.B);
             }
@@ -287,9 +244,9 @@ namespace InputOutput
             }
         }
 
-        public static void WriteStyleToXml(
-            XmlElement el, IFigureGraphicProperties style)
+        public static void WriteStyleToXml(XmlElement el, IFigureGraphicProperties style)
         {
+            // Stroke
             el.SetAttribute("stroke", ColorToHex(style.Color));
             el.SetAttribute("stroke-width",
                 style.Thickness.ToString(CultureInfo.InvariantCulture));
@@ -301,39 +258,70 @@ namespace InputOutput
                     .ToString("0.###", CultureInfo.InvariantCulture));
             }
 
-            el.SetAttribute("fill", "none");
+            // Fill — проверяем, не Extended ли стиль
+            if (style is ExtendedGraphicProperties ext && ext.FillColor is { } fill)
+            {
+                el.SetAttribute("fill", ColorToHex(fill));
+                if (fill.A < 255)
+                {
+                    el.SetAttribute("fill-opacity",
+                        (fill.A / 255.0)
+                        .ToString("0.###", CultureInfo.InvariantCulture));
+                }
+            }
+            else
+            {
+                el.SetAttribute("fill", "none");
+            }
         }
 
         public static IFigureGraphicProperties ReadStyleFromXml(XmlNode node)
         {
             var strokeStr = node.Attributes?["stroke"]?.Value;
             var widthStr = node.Attributes?["stroke-width"]?.Value;
-            var opacityStr = node.Attributes?["stroke-opacity"]?.Value;
+            var strokeOpStr = node.Attributes?["stroke-opacity"]?.Value;
+            var fillStr = node.Attributes?["fill"]?.Value;
+            var fillOpStr = node.Attributes?["fill-opacity"]?.Value;
 
-            var color = strokeStr != null
+            // Stroke
+            var strokeColor = strokeStr != null
                 ? ParseColor(strokeStr)
                 : AvColor.FromArgb(255, 0, 0, 0);
 
-            // stroke-opacity перезаписывает альфу, если указан
-            if (opacityStr != null &&
-                double.TryParse(opacityStr, NumberStyles.Float,
-                    CultureInfo.InvariantCulture, out double opacity))
+            if (strokeOpStr != null &&
+                double.TryParse(strokeOpStr, NumberStyles.Float,
+                    CultureInfo.InvariantCulture, out double sOp))
             {
-                byte a = (byte)Math.Clamp(opacity * 255, 0, 255);
-                color = AvColor.FromArgb(a, color.R, color.G, color.B);
+                byte a = (byte)Math.Clamp(sOp * 255, 0, 255);
+                strokeColor = AvColor.FromArgb(a, strokeColor.R, strokeColor.G, strokeColor.B);
             }
 
             double thickness = widthStr != null
                 ? double.Parse(widthStr, CultureInfo.InvariantCulture)
                 : 1.0;
 
-            return new FigureGraphicProperties(color, thickness);
+            // Fill
+            AvColor? fillColor = null;
+            if (!string.IsNullOrWhiteSpace(fillStr) && fillStr != "none")
+            {
+                fillColor = ParseColor(fillStr);
+                if (fillOpStr != null &&
+                    double.TryParse(fillOpStr, NumberStyles.Float,
+                        CultureInfo.InvariantCulture, out double fOp))
+                {
+                    byte a = (byte)Math.Clamp(fOp * 255, 0, 255);
+                    fillColor = AvColor.FromArgb(a, fillColor.Value.R,
+                        fillColor.Value.G, fillColor.Value.B);
+                }
+            }
+
+            // Если есть fill — возвращаем расширенный, иначе обычный
+            if (fillColor != null)
+                return new ExtendedGraphicProperties(strokeColor, thickness, fillColor);
+
+            return new FigureGraphicProperties(strokeColor, thickness);
         }
     }
-
-    // ════════════════════════════════════════════════════════════
-    //  Сериализаторы конкретных фигур
-    // ════════════════════════════════════════════════════════════
 
     public class LineSerializer : IFigureSerializer
     {
@@ -473,12 +461,10 @@ namespace InputOutput
         {
             string d = node.Attributes!["d"]!.Value.Trim();
 
-            // "M x0 y0 Q x1 y1 x2 y2"
             var tokens = d.Split(
                 new[] { ' ', '\t', '\n', '\r' },
                 StringSplitOptions.RemoveEmptyEntries);
 
-            // Убираем буквы команд, оставляем только числа
             var nums = tokens
                 .Where(t => t != "M" && t != "Q" && t != "m" && t != "q")
                 .Select(t => double.Parse(t, CultureInfo.InvariantCulture))
@@ -498,8 +484,6 @@ namespace InputOutput
 
     public class CurvedPolygonSerializer : IFigureSerializer
     {
-        // Фиктивный тег — реальный SVG-тег всё равно <path>,
-        // разрешение идёт через data-type в ResolveSerializer.
         public string SvgTagName => "path-curvedpolygon";
         public Type FigureType => typeof(CurvedPolygon);
 
