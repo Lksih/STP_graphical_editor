@@ -741,7 +741,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
             .SelectMany(layer => layer.FiguresGraphicProperties)
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
-        await _io.ExportFlatImageAsync(path, allFigures, allProperties);
+        _io.ExportSVG(path, allFigures, allProperties);
     }
 
     public Task<bool> CanCloseAsync() => ConfirmLoseChangesIfDirtyAsync();

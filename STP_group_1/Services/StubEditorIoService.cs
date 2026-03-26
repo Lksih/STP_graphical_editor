@@ -14,10 +14,9 @@ public sealed class StubEditorIoService : IEditorIoService
         await FigureJsonIo.SaveFiguresAsync(figures, styles, path);
     }
 
-    public Task ExportFlatImageAsync(string filePath, IEnumerable<IFigure> figures, Dictionary<IFigure, IFigureGraphicProperties> figuresGraphicProperties)
+    public void ExportSVG(string filePath, IEnumerable<IFigure> figures, Dictionary<IFigure, IFigureGraphicProperties> figuresGraphicProperties)
     {
         SVGConverter.Save(figures, figuresGraphicProperties, filePath, 500, 500);
-        return Task.CompletedTask;
     }
 
     public (IReadOnlyList<IFigure> Figures, Dictionary<IFigure, IFigureGraphicProperties> Styles) ImportSVG(string filePath)
