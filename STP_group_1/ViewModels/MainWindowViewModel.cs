@@ -17,7 +17,7 @@ using System.Reactive;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
 using System.Xml.Linq;
-using UI.Models;
+using Geometry.Graphic;
 
 namespace STP_group_1.ViewModels;
 
@@ -693,7 +693,11 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         if (path is null)
             return;
 
-        await _io.ExportFlatImageAsync(path);
+        var allFigures = Layers.SelectMany(layer => layer.Figures);
+        var allProperties = Layers
+            .SelectMany(layer => layer.FiguresGraphicProperties)
+            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+        await _io.ExportFlatImageAsync(path, allFigures, allProperties);
     }
 
     public Task<bool> CanCloseAsync() => ConfirmLoseChangesIfDirtyAsync();

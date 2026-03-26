@@ -3,7 +3,7 @@ using System.Collections.ObjectModel;
 using Avalonia.Media;
 using Geometry;
 using ReactiveUI;
-using UI.Models;
+using Geometry.Graphic;
 
 namespace STP_group_1.ViewModels;
 

@@ -3,7 +3,7 @@ using ReactiveUI;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using UI.Models;
+using Geometry.Graphic;
 
 namespace STP_group_1.ViewModels
 {

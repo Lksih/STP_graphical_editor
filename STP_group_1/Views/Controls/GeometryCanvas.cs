@@ -9,7 +9,7 @@ using Avalonia.Input;
 using Avalonia.Media;
 using Geometry;
 using STP_group_1.ViewModels;
-using UI.Models;
+using Geometry.Graphic;
 
 namespace STP_group_1.Views.Controls;
 

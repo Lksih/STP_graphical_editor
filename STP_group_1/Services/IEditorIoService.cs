@@ -1,6 +1,7 @@
+using Geometry;
+using Geometry.Graphic;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Geometry;
 
 namespace STP_group_1.Services;
 
@@ -11,6 +12,6 @@ namespace STP_group_1.Services;
 public interface IEditorIoService
 {
     Task SaveNativeProjectAsync(string path, IEnumerable<IFigure> figures);
-    Task ExportFlatImageAsync(string path);     // PNG/JPG...
+    Task ExportFlatImageAsync(string filePath, IEnumerable<IFigure> figures, Dictionary<IFigure, IFigureGraphicProperties> figuresGraphicProperties); // PNG/JPG...
     Task<IReadOnlyList<IFigure>> OpenNativeProjectAsync(string path);
 }
