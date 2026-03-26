@@ -740,7 +740,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
             .SelectMany(layer => layer.FiguresGraphicProperties)
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
-        _io.ExportSVG(path, allFigures, allProperties);
+        _io.ExportSVGAndRaster(path, allFigures, allProperties, CanvasWidth, CanvasHeight);
     }
 
     public Task<bool> CanCloseAsync() => ConfirmLoseChangesIfDirtyAsync();

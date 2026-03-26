@@ -83,7 +83,7 @@
                 <MenuItem Header="Импорт из SVG" Command="{Binding ImportCommand}" />
                 <Separator/>
                 <MenuItem Header="Сохранить" Command="{Binding SaveCommand}" />
-                <MenuItem Header="Экспорт в SVG" Command="{Binding ExportCommand}" />
+                <MenuItem Header="Экспорт в SVG/PNG/JPG/BMP" Command="{Binding ExportCommand}" />
                 <Separator/>
                 <MenuItem Header="Выход" Click="OnExitMenuClick" />
             </MenuItem>
