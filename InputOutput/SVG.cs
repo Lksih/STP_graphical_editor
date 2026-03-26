@@ -482,60 +482,69 @@ namespace InputOutput
         }
     }
 
-    public class CurvedPolygonSerializer : IFigureSerializer
+public class CurvedPolygonSerializer : IFigureSerializer
+{
+    public string SvgTagName => "path-curvedpolygon";
+    public Type FigureType => typeof(CurvedPolygon);
+
+    public XmlElement ToXml(XmlDocument doc, IFigure figure)
     {
-        public string SvgTagName => "path-curvedpolygon";
-        public Type FigureType => typeof(CurvedPolygon);
+        var el = doc.CreateElement("path");
+        el.SetAttribute("data-type", "CurvedPolygon");
 
-        public XmlElement ToXml(XmlDocument doc, IFigure figure)
+        var v = figure.Vertex;
+        var sb = new StringBuilder();
+
+        // Move to first endpoint
+        sb.Append(
+            $"M {v[0].X.ToString(CultureInfo.InvariantCulture)} " +
+            $"{v[0].Y.ToString(CultureInfo.InvariantCulture)} ");
+
+        // Quadratic curves: step 2 — each (control, endpoint)
+        for (int i = 0; i < v.Length - 2; i += 2)
         {
-            var el = doc.CreateElement("path");
-            el.SetAttribute("data-type", "CurvedPolygon");
-
-            var v = figure.Vertex;
-            var sb = new StringBuilder();
-            for (int i = 0; i < v.Length; i += 3)
-            {
-                sb.Append(
-                    $"M {v[i].X.ToString(CultureInfo.InvariantCulture)} " +
-                    $"{v[i].Y.ToString(CultureInfo.InvariantCulture)} ");
-                sb.Append(
-                    $"Q {v[i + 1].X.ToString(CultureInfo.InvariantCulture)} " +
-                    $"{v[i + 1].Y.ToString(CultureInfo.InvariantCulture)} ");
-                sb.Append(
-                    $"{v[i + 2].X.ToString(CultureInfo.InvariantCulture)} " +
-                    $"{v[i + 2].Y.ToString(CultureInfo.InvariantCulture)} ");
-            }
-
-            el.SetAttribute("d", sb.ToString().Trim());
-            return el;
+            sb.Append(
+                $"Q {v[i + 1].X.ToString(CultureInfo.InvariantCulture)} " +
+                $"{v[i + 1].Y.ToString(CultureInfo.InvariantCulture)} " +
+                $"{v[i + 2].X.ToString(CultureInfo.InvariantCulture)} " +
+                $"{v[i + 2].Y.ToString(CultureInfo.InvariantCulture)} ");
         }
 
-        public IFigure FromXml(XmlNode node)
-        {
-            string d = node.Attributes!["d"]!.Value;
-            var segments = d.Split('M', StringSplitOptions.RemoveEmptyEntries);
-            var points = new List<Point>();
+        // Closing curve: last control → back to first endpoint
+        sb.Append(
+            $"Q {v[v.Length - 1].X.ToString(CultureInfo.InvariantCulture)} " +
+            $"{v[v.Length - 1].Y.ToString(CultureInfo.InvariantCulture)} " +
+            $"{v[0].X.ToString(CultureInfo.InvariantCulture)} " +
+            $"{v[0].Y.ToString(CultureInfo.InvariantCulture)} Z");
 
-            foreach (var seg in segments)
-            {
-                var coords = seg.Replace("Q", "").Trim()
-                    .Split([' '], StringSplitOptions.RemoveEmptyEntries);
-                if (coords.Length >= 6)
-                {
-                    points.Add(new Point(
-                        double.Parse(coords[0], CultureInfo.InvariantCulture),
-                        double.Parse(coords[1], CultureInfo.InvariantCulture)));
-                    points.Add(new Point(
-                        double.Parse(coords[2], CultureInfo.InvariantCulture),
-                        double.Parse(coords[3], CultureInfo.InvariantCulture)));
-                    points.Add(new Point(
-                        double.Parse(coords[4], CultureInfo.InvariantCulture),
-                        double.Parse(coords[5], CultureInfo.InvariantCulture)));
-                }
-            }
-
-            return new CurvedPolygon(points.ToArray());
-        }
+        el.SetAttribute("d", sb.ToString().Trim());
+        return el;
     }
+
+    public IFigure FromXml(XmlNode node)
+    {
+        string d = node.Attributes!["d"]!.Value.Trim();
+
+        // Убираем команды, оставляем только числа
+        var nums = d.Replace(",", " ")
+            .Split(new[] { ' ', '\t', '\n', '\r' },
+                StringSplitOptions.RemoveEmptyEntries)
+            .Where(t =>
+                !t.Equals("M", StringComparison.OrdinalIgnoreCase) &&
+                !t.Equals("Q", StringComparison.OrdinalIgnoreCase) &&
+                !t.Equals("Z", StringComparison.OrdinalIgnoreCase))
+            .Select(t => double.Parse(t, CultureInfo.InvariantCulture))
+            .ToList();
+
+        // Последние 2 числа — замыкающая точка (дубль первой), убираем
+        if (nums.Count >= 4)
+            nums.RemoveRange(nums.Count - 2, 2);
+
+        var points = new Point[nums.Count / 2];
+        for (int i = 0; i < nums.Count; i += 2)
+            points[i / 2] = new Point(nums[i], nums[i + 1]);
+
+        return new CurvedPolygon(points);
+    }
+}
 }
