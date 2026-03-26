@@ -15,10 +15,6 @@ public static class FigureJsonIo
 
     private static readonly Type EllipseTypeInfo = typeof(Ellipse);
 
-    // ═══════════════════════════════════════════════════════════
-    //  SAVE
-    // ═══════════════════════════════════════════════════════════
-
     public static async Task SaveFiguresAsync(
         IEnumerable<IFigure> figures,
         Dictionary<IFigure, IFigureGraphicProperties> styles,
@@ -28,10 +24,6 @@ public static class FigureJsonIo
         string json = JsonConvert.SerializeObject(dtos, Formatting.Indented);
         await File.WriteAllTextAsync(filePath, json);
     }
-
-    // ═══════════════════════════════════════════════════════════
-    //  LOAD
-    // ═══════════════════════════════════════════════════════════
 
     public static async Task<(IReadOnlyList<IFigure> Figures,
         Dictionary<IFigure, IFigureGraphicProperties> Styles)>
@@ -57,27 +49,24 @@ public static class FigureJsonIo
         return (figures, styles);
     }
 
-    // ═══════════════════════════════════════════════════════════
-    //  DTO ↔ Figure
-    // ═══════════════════════════════════════════════════════════
-
     private static FigureDto ToDto(
         IFigure figure,
         Dictionary<IFigure, IFigureGraphicProperties> styles)
     {
         styles.TryGetValue(figure, out var style);
 
-        var colorDto = style != null
-            ? new ColorDto
-            {
-                R = style.Color.R,
-                G = style.Color.G,
-                B = style.Color.B,
-                A = style.Color.A
-            }
+        var strokeDto = style != null
+            ? new ColorDto { R = style.Color.R, G = style.Color.G, B = style.Color.B, A = style.Color.A }
             : new ColorDto { R = 0, G = 0, B = 0, A = 255 };
 
         double thickness = style?.Thickness ?? 1.0;
+
+        // Пробуем достать fill
+        ColorDto? fillDto = null;
+        if (style is ExtendedGraphicProperties ext && ext.FillColor is { } fill)
+        {
+            fillDto = new ColorDto { R = fill.R, G = fill.G, B = fill.B, A = fill.A };
+        }
 
         return figure switch
         {
@@ -85,29 +74,33 @@ public static class FigureJsonIo
             {
                 Type = LineType,
                 Points = VerticesToDtos(figure),
-                StrokeColor = colorDto,
-                StrokeThickness = thickness
+                StrokeColor = strokeDto,
+                StrokeThickness = thickness,
+                FillColor = fillDto
             },
             Curve => new FigureDto
             {
                 Type = CurveType,
                 Points = VerticesToDtos(figure),
-                StrokeColor = colorDto,
-                StrokeThickness = thickness
+                StrokeColor = strokeDto,
+                StrokeThickness = thickness,
+                FillColor = fillDto
             },
             Polygon => new FigureDto
             {
                 Type = PolygonType,
                 Points = VerticesToDtos(figure),
-                StrokeColor = colorDto,
-                StrokeThickness = thickness
+                StrokeColor = strokeDto,
+                StrokeThickness = thickness,
+                FillColor = fillDto
             },
             CurvedPolygon => new FigureDto
             {
                 Type = CurvedPolygonType,
                 Points = VerticesToDtos(figure),
-                StrokeColor = colorDto,
-                StrokeThickness = thickness
+                StrokeColor = strokeDto,
+                StrokeThickness = thickness,
+                FillColor = fillDto
             },
             Ellipse ellipse => new FigureDto
             {
@@ -116,8 +109,9 @@ public static class FigureJsonIo
                 Rx = ReadEllipseField(ellipse, "Rx"),
                 Ry = ReadEllipseField(ellipse, "Ry"),
                 Angle = ReadEllipseField(ellipse, "Angle"),
-                StrokeColor = colorDto,
-                StrokeThickness = thickness
+                StrokeColor = strokeDto,
+                StrokeThickness = thickness,
+                FillColor = fillDto
             },
             _ => throw new NotSupportedException(
                 $"Figure type '{figure.GetType().Name}' is not supported.")
@@ -143,30 +137,26 @@ public static class FigureJsonIo
                 $"Figure DTO type '{dto.Type}' is not supported.")
         };
 
-    // ═══════════════════════════════════════════════════════════
-    //  Style helpers
-    // ═══════════════════════════════════════════════════════════
-
-    /// <summary>
-    /// Извлечение стиля из DTO. Работает и со старыми JSON
-    /// (без полей цвета) — вернёт чёрный, толщина 1.
-    /// </summary>
     private static IFigureGraphicProperties ExtractStyle(FigureDto dto)
     {
-        AvColor color;
-        if (dto.StrokeColor is { } c)
-            color = AvColor.FromArgb(c.A, c.R, c.G, c.B);
+        AvColor strokeColor;
+        if (dto.StrokeColor is { } sc)
+            strokeColor = AvColor.FromArgb(sc.A, sc.R, sc.G, sc.B);
         else
-            color = AvColor.FromArgb(255, 0, 0, 0);
+            strokeColor = AvColor.FromArgb(255, 0, 0, 0);
 
         double thickness = dto.StrokeThickness ?? 1.0;
 
-        return new FigureGraphicProperties(color, thickness);
-    }
+        // Fill
+        AvColor? fillColor = null;
+        if (dto.FillColor is { } fc)
+            fillColor = AvColor.FromArgb(fc.A, fc.R, fc.G, fc.B);
 
-    // ═══════════════════════════════════════════════════════════
-    //  Validation helpers
-    // ═══════════════════════════════════════════════════════════
+        if (fillColor != null)
+            return new ExtendedGraphicProperties(strokeColor, thickness, fillColor);
+
+        return new FigureGraphicProperties(strokeColor, thickness);
+    }
 
     private static Geometry.Point[] RequirePoints(FigureDto dto, int count)
     {
