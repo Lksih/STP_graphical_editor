@@ -1,20 +1,19 @@
-﻿using System.Drawing.Imaging;
+﻿using Geometry;
+using Geometry.Graphic;
+using Svg;
+using System.Drawing.Imaging;
 using System.Globalization;
 using System.Reflection;
 using System.Text;
 using System.Xml;
-using Svg;
-using Geometry;
 using AvColor = Avalonia.Media.Color;
-using SdColor = System.Drawing.Color;
 using Point = Geometry.Point;
-using Geometry.Graphic;
+using SdColor = System.Drawing.Color;
 
 namespace InputOutput
 {
     /// <summary>
-    /// Реестр сериализаторов для ЧИСТОЙ геометрии.
-    /// Стили теперь обрабатываются отдельно.
+    /// Реестр сериализаторов фигур для SVG.
     /// </summary>
     public static class FigureSerializers
     {
@@ -41,12 +40,15 @@ namespace InputOutput
 
         public static IFigureSerializer? GetSerializer(string tagName) =>
             _tagMap.GetValueOrDefault(tagName);
+
+        public static IFigureSerializer? GetSerializerByType(Type type) =>
+            _serializers.GetValueOrDefault(type);
     }
 
     public static class SVGConverter
     {
         /// <summary>
-        /// СОХРАНЕНИЕ: Принимает геометрию и словарь стилей.
+        /// Универсальное сохранение: SVG или растр (PNG/JPG/BMP) по расширению.
         /// </summary>
         public static void Save(
             IEnumerable<IFigure> figures,
@@ -59,62 +61,18 @@ namespace InputOutput
 
             if (ext == "svg")
             {
-                CanvasToSVG(figures, styles, filePath);
+                SaveSvg(figures, styles, filePath);
             }
             else
             {
-                string tempSvg = Path.ChangeExtension(filePath, ".temp.svg");
-                try
-                {
-                    CanvasToSVG(figures, styles, tempSvg);
-                    SVGToBitmapFormat(tempSvg, filePath, width, height);
-                }
-                finally
-                {
-                    if (File.Exists(tempSvg)) File.Delete(tempSvg);
-                }
+                ExportToBitmap(figures, styles, filePath, width, height);
             }
         }
 
         /// <summary>
-        /// ЗАГРУЗКА: Возвращает и геометрию, и словарь стилей.
+        /// Сохранение в SVG-файл.
         /// </summary>
-        public static (List<IFigure> Figures, Dictionary<IFigure, IFigureGraphicProperties> Styles) Load(string filePath)
-        {
-            var figures = new List<IFigure>();
-            var styles = new Dictionary<IFigure, IFigureGraphicProperties>();
-
-            var doc = new XmlDocument();
-            doc.Load(filePath);
-
-            var nodes = doc.SelectNodes("//*[local-name()='svg']/*");
-            if (nodes == null) return (figures, styles);
-
-            foreach (XmlNode node in nodes)
-            {
-                var serializer = FigureSerializers.GetSerializer(node.Name);
-                if (serializer != null)
-                {
-                    try
-                    {
-                        // 1. Восстанавливаем геометрию
-                        var figure = serializer.FromXml(node);
-                        figures.Add(figure);
-
-                        // 2. Восстанавливаем стиль
-                        var style = StyleHelper.ReadStyleFromXml(node);
-                        styles[figure] = style;
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Error loading {node.Name}: {ex.Message}");
-                    }
-                }
-            }
-            return (figures, styles);
-        }
-
-        private static void CanvasToSVG(
+        public static void SaveSvg(
             IEnumerable<IFigure> figures,
             Dictionary<IFigure, IFigureGraphicProperties> styles,
             string filePath)
@@ -128,43 +86,142 @@ namespace InputOutput
             foreach (var fig in figures)
             {
                 var serializer = FigureSerializers.GetSerializer(fig);
-                if (serializer != null)
-                {
-                    var xmlEl = serializer.ToXml(doc, fig);
+                if (serializer == null) continue;
 
-                    // Достаем стиль из словаря, если его нет - берем дефолтный
-                    if (!styles.TryGetValue(fig, out var style))
-                    {
-                        style = new FigureGraphicProperties(AvColor.FromRgb(0, 0, 0), 1.0); // Default style
-                    }
+                var xmlEl = serializer.ToXml(doc, fig);
 
-                    StyleHelper.WriteStyleToXml(xmlEl, style);
-                    svgEl.AppendChild(xmlEl);
-                }
+                if (!styles.TryGetValue(fig, out var style))
+                    style = new FigureGraphicProperties(AvColor.FromRgb(0, 0, 0), 1.0);
+
+                StyleHelper.WriteStyleToXml(xmlEl, style);
+                svgEl.AppendChild(xmlEl);
             }
+
             doc.Save(filePath);
         }
 
-        private static void SVGToBitmapFormat(string svgPath, string outputPath, int width, int height)
+        /// <summary>
+        /// Загрузка фигур и стилей из SVG-файла.
+        /// </summary>
+        public static (List<IFigure> Figures, Dictionary<IFigure, IFigureGraphicProperties> Styles) Load(
+            string filePath)
+        {
+            var figures = new List<IFigure>();
+            var styles = new Dictionary<IFigure, IFigureGraphicProperties>();
+
+            var doc = new XmlDocument();
+            doc.Load(filePath);
+
+            var nodes = doc.SelectNodes("//*[local-name()='svg']/*");
+            if (nodes == null) return (figures, styles);
+
+            foreach (XmlNode node in nodes)
+            {
+                IFigureSerializer? serializer = ResolveSerializer(node);
+                if (serializer == null) continue;
+
+                try
+                {
+                    var figure = serializer.FromXml(node);
+                    figures.Add(figure);
+
+                    var style = StyleHelper.ReadStyleFromXml(node);
+                    styles[figure] = style;
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"Error loading <{node.Name}>: {ex.Message}");
+                }
+            }
+
+            return (figures, styles);
+        }
+
+        /// <summary>
+        /// Экспорт в растровый формат (PNG, JPG, BMP).
+        /// Отдельный публичный метод.
+        /// </summary>
+        public static void ExportToBitmap(
+            IEnumerable<IFigure> figures,
+            Dictionary<IFigure, IFigureGraphicProperties> styles,
+            string outputPath,
+            int width,
+            int height)
+        {
+            string tempSvg = Path.Combine(
+                Path.GetTempPath(), $"{Guid.NewGuid()}.svg");
+            try
+            {
+                SaveSvg(figures, styles, tempSvg);
+                RenderSvgToBitmap(tempSvg, outputPath, width, height);
+            }
+            finally
+            {
+                if (File.Exists(tempSvg)) File.Delete(tempSvg);
+            }
+        }
+
+        // ── private ────────────────────────────────────────────
+
+        /// <summary>
+        /// Выбор сериализатора по XML-узлу.
+        /// Для &lt;path&gt; смотрим data-type, чтобы отл��чить Curve от CurvedPolygon.
+        /// </summary>
+        private static IFigureSerializer? ResolveSerializer(XmlNode node)
+        {
+            if (node.Name == "path")
+            {
+                var dataType = node.Attributes?["data-type"]?.Value;
+                return dataType == "CurvedPolygon"
+                    ? FigureSerializers.GetSerializerByType(typeof(CurvedPolygon))
+                    : FigureSerializers.GetSerializerByType(typeof(Curve));
+            }
+
+            return FigureSerializers.GetSerializer(node.Name);
+        }
+
+        private static void RenderSvgToBitmap(
+            string svgPath, string outputPath, int width, int height)
         {
             var svgDoc = SvgDocument.Open(svgPath);
+
             using var bitmap = new System.Drawing.Bitmap(width, height);
             using (var g = System.Drawing.Graphics.FromImage(bitmap))
             {
                 g.Clear(SdColor.White);
-                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                g.SmoothingMode =
+                    System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
                 svgDoc.Draw(g);
             }
 
-            string fmt = Path.GetExtension(outputPath).TrimStart('.').ToLower();
-            var encoder = ImageCodecInfo.GetImageEncoders().FirstOrDefault(e => e.MimeType == $"image/{fmt}")
-                          ?? throw new NotSupportedException($"Format {fmt} not supported");
+            string ext = Path.GetExtension(outputPath)
+                .TrimStart('.').ToLower();
+
+            // jpg → image/jpeg (MIME не совпадает с расширением)
+            string mimeType = ext switch
+            {
+                "jpg" or "jpeg" => "image/jpeg",
+                "png" => "image/png",
+                "bmp" => "image/bmp",
+                _ => $"image/{ext}"
+            };
+
+            var encoder = ImageCodecInfo.GetImageEncoders()
+                              .FirstOrDefault(e => e.MimeType == mimeType)
+                          ?? throw new NotSupportedException(
+                              $"Bitmap format '{ext}' is not supported.");
 
             using var pars = new EncoderParameters(1);
-            pars.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, 100L);
+            pars.Param[0] = new EncoderParameter(
+                System.Drawing.Imaging.Encoder.Quality, 100L);
             bitmap.Save(outputPath, encoder, pars);
         }
     }
+
+    // ════════════════════════════════════════════════════════════
+    //  Интерфейс сериализатора
+    // ════════════════════════════════════════════════════════════
 
     public interface IFigureSerializer
     {
@@ -174,49 +231,109 @@ namespace InputOutput
         IFigure FromXml(XmlNode node);
     }
 
+    // ════════════════════════════════════════════════════════════
+    //  Работа со стилями (stroke / stroke-width / stroke-opacity)
+    // ════════════════════════════════════════════════════════════
+
     internal static class StyleHelper
     {
-        public static string ColorToString(AvColor c) =>
-            $"rgba({c.R},{c.G},{c.B},{c.A / 255.0:0.##})".Replace(',', '.');
+        /// <summary>
+        /// AvColor → #RRGGBB (стандартный SVG-формат).
+        /// Альфа пишется отдельным атрибутом stroke-opacity.
+        /// </summary>
+        public static string ColorToHex(AvColor c) =>
+            $"#{c.R:X2}{c.G:X2}{c.B:X2}";
 
+        /// <summary>
+        /// Разбор SVG-цвета: #RRGGBB, #RGB, rgb(), rgba(), named colors.
+        /// </summary>
         public static AvColor ParseColor(string s)
         {
-            if (string.IsNullOrWhiteSpace(s) || s == "none") return AvColor.FromRgb(0, 0, 0);
+            if (string.IsNullOrWhiteSpace(s) || s == "none")
+                return AvColor.FromArgb(255, 0, 0, 0);
+
             try
             {
-                if (s.StartsWith("rgba"))
+                if (s.StartsWith("rgba", StringComparison.OrdinalIgnoreCase))
                 {
-                    var parts = s.Replace("rgba(", "").Replace(")", "").Split(',');
-                    byte r = byte.Parse(parts[0].Trim());
-                    byte g = byte.Parse(parts[1].Trim());
-                    byte b = byte.Parse(parts[2].Trim());
-                    double aDouble = double.Parse(parts[3].Trim(), CultureInfo.InvariantCulture);
-                    return AvColor.FromArgb((byte)(aDouble * 255), r, g, b);
+                    var inner = s.Substring(s.IndexOf('(') + 1)
+                        .TrimEnd(')').Trim();
+                    var parts = inner.Split(',');
+                    byte r = byte.Parse(parts[0].Trim(), CultureInfo.InvariantCulture);
+                    byte g = byte.Parse(parts[1].Trim(), CultureInfo.InvariantCulture);
+                    byte b = byte.Parse(parts[2].Trim(), CultureInfo.InvariantCulture);
+                    double a = double.Parse(parts[3].Trim(), CultureInfo.InvariantCulture);
+                    return AvColor.FromArgb((byte)(a * 255), r, g, b);
                 }
-                var sdColor = System.Drawing.ColorTranslator.FromHtml(s);
-                return AvColor.FromArgb(sdColor.A, sdColor.R, sdColor.G, sdColor.B);
+
+                if (s.StartsWith("rgb", StringComparison.OrdinalIgnoreCase))
+                {
+                    var inner = s.Substring(s.IndexOf('(') + 1)
+                        .TrimEnd(')').Trim();
+                    var parts = inner.Split(',');
+                    byte r = byte.Parse(parts[0].Trim(), CultureInfo.InvariantCulture);
+                    byte g = byte.Parse(parts[1].Trim(), CultureInfo.InvariantCulture);
+                    byte b = byte.Parse(parts[2].Trim(), CultureInfo.InvariantCulture);
+                    return AvColor.FromArgb(255, r, g, b);
+                }
+
+                // #RRGGBB, #RGB, named → через System.Drawing
+                var sd = System.Drawing.ColorTranslator.FromHtml(s);
+                return AvColor.FromArgb(sd.A, sd.R, sd.G, sd.B);
             }
-            catch { return AvColor.FromRgb(0, 0, 0); }
+            catch
+            {
+                return AvColor.FromArgb(255, 0, 0, 0);
+            }
         }
 
-        public static void WriteStyleToXml(XmlElement el, IFigureGraphicProperties style)
+        public static void WriteStyleToXml(
+            XmlElement el, IFigureGraphicProperties style)
         {
-            el.SetAttribute("stroke", ColorToString(style.Color));
-            el.SetAttribute("stroke-width", style.Thickness.ToString(CultureInfo.InvariantCulture));
+            el.SetAttribute("stroke", ColorToHex(style.Color));
+            el.SetAttribute("stroke-width",
+                style.Thickness.ToString(CultureInfo.InvariantCulture));
+
+            if (style.Color.A < 255)
+            {
+                el.SetAttribute("stroke-opacity",
+                    (style.Color.A / 255.0)
+                    .ToString("0.###", CultureInfo.InvariantCulture));
+            }
+
             el.SetAttribute("fill", "none");
         }
 
         public static IFigureGraphicProperties ReadStyleFromXml(XmlNode node)
         {
-            var strokeAttr = node.Attributes?["stroke"]?.Value;
-            var widthAttr = node.Attributes?["stroke-width"]?.Value;
+            var strokeStr = node.Attributes?["stroke"]?.Value;
+            var widthStr = node.Attributes?["stroke-width"]?.Value;
+            var opacityStr = node.Attributes?["stroke-opacity"]?.Value;
 
-            var color = strokeAttr != null ? ParseColor(strokeAttr) : AvColor.FromRgb(0, 0, 0);
-            var thickness = widthAttr != null ? double.Parse(widthAttr, CultureInfo.InvariantCulture) : 1.0;
+            var color = strokeStr != null
+                ? ParseColor(strokeStr)
+                : AvColor.FromArgb(255, 0, 0, 0);
+
+            // stroke-opacity перезаписывает альфу, если указан
+            if (opacityStr != null &&
+                double.TryParse(opacityStr, NumberStyles.Float,
+                    CultureInfo.InvariantCulture, out double opacity))
+            {
+                byte a = (byte)Math.Clamp(opacity * 255, 0, 255);
+                color = AvColor.FromArgb(a, color.R, color.G, color.B);
+            }
+
+            double thickness = widthStr != null
+                ? double.Parse(widthStr, CultureInfo.InvariantCulture)
+                : 1.0;
 
             return new FigureGraphicProperties(color, thickness);
         }
     }
+
+    // ════════════════════════════════════════════════════════════
+    //  Сериализаторы конкретных фигур
+    // ════════════════════════════════════════════════════════════
 
     public class LineSerializer : IFigureSerializer
     {
@@ -254,14 +371,16 @@ namespace InputOutput
             var el = doc.CreateElement("polygon");
             var sb = new StringBuilder();
             foreach (var p in figure.Vertex)
-                sb.Append($"{p.X.ToString(CultureInfo.InvariantCulture)},{p.Y.ToString(CultureInfo.InvariantCulture)} ");
+                sb.Append(
+                    $"{p.X.ToString(CultureInfo.InvariantCulture)},{p.Y.ToString(CultureInfo.InvariantCulture)} ");
             el.SetAttribute("points", sb.ToString().Trim());
             return el;
         }
 
         public IFigure FromXml(XmlNode node)
         {
-            var split = node.Attributes!["points"]!.Value.Trim().Split([' ', ','], StringSplitOptions.RemoveEmptyEntries);
+            var split = node.Attributes!["points"]!.Value.Trim()
+                .Split([' ', ','], StringSplitOptions.RemoveEmptyEntries);
             var points = new Point[split.Length / 2];
             for (int i = 0; i < split.Length; i += 2)
                 points[i / 2] = new Point(
@@ -281,9 +400,12 @@ namespace InputOutput
             var el = doc.CreateElement("ellipse");
             var f = (Ellipse)figure;
             var type = typeof(Ellipse);
-            double rx = (double)type.GetField("Rx", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(f)!;
-            double ry = (double)type.GetField("Ry", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(f)!;
-            double angle = (double)type.GetField("Angle", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(f)!;
+            double rx = (double)type.GetField("Rx",
+                BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(f)!;
+            double ry = (double)type.GetField("Ry",
+                BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(f)!;
+            double angle = (double)type.GetField("Angle",
+                BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(f)!;
 
             el.SetAttribute("cx", f.Center.X.ToString(CultureInfo.InvariantCulture));
             el.SetAttribute("cy", f.Center.Y.ToString(CultureInfo.InvariantCulture));
@@ -294,8 +416,11 @@ namespace InputOutput
             {
                 double deg = angle * 180.0 / Math.PI;
                 el.SetAttribute("transform",
-                    $"rotate({deg.ToString(CultureInfo.InvariantCulture)} {f.Center.X.ToString(CultureInfo.InvariantCulture)} {f.Center.Y.ToString(CultureInfo.InvariantCulture)})");
+                    $"rotate({deg.ToString(CultureInfo.InvariantCulture)} " +
+                    $"{f.Center.X.ToString(CultureInfo.InvariantCulture)} " +
+                    $"{f.Center.Y.ToString(CultureInfo.InvariantCulture)})");
             }
+
             return el;
         }
 
@@ -309,15 +434,20 @@ namespace InputOutput
             var ellipse = new Ellipse(new Point(cx, cy), rx, ry);
 
             var transform = node.Attributes["transform"]?.Value;
-            if (!string.IsNullOrEmpty(transform) && transform.StartsWith("rotate"))
+            if (!string.IsNullOrEmpty(transform) &&
+                transform.StartsWith("rotate"))
             {
-                var parts = transform.Replace("rotate(", "").Replace(")", "").Split(' ');
+                var parts = transform
+                    .Replace("rotate(", "").Replace(")", "")
+                    .Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 double deg = double.Parse(parts[0], CultureInfo.InvariantCulture);
                 ellipse.Rotate(deg * Math.PI / 180.0);
             }
+
             return ellipse;
         }
     }
+
     public class CurveSerializer : IFigureSerializer
     {
         public string SvgTagName => "path";
@@ -327,34 +457,72 @@ namespace InputOutput
         {
             var el = doc.CreateElement("path");
             var v = figure.Vertex;
-            string d = $"M {v[0].X.ToString(CultureInfo.InvariantCulture)} {v[0].Y.ToString(CultureInfo.InvariantCulture)} " +
-                       $"Q {v[1].X.ToString(CultureInfo.InvariantCulture)} {v[1].Y.ToString(CultureInfo.InvariantCulture)} " +
-                       $"{v[2].X.ToString(CultureInfo.InvariantCulture)} {v[2].Y.ToString(CultureInfo.InvariantCulture)}";
+            string d =
+                $"M {v[0].X.ToString(CultureInfo.InvariantCulture)} " +
+                $"{v[0].Y.ToString(CultureInfo.InvariantCulture)} " +
+                $"Q {v[1].X.ToString(CultureInfo.InvariantCulture)} " +
+                $"{v[1].Y.ToString(CultureInfo.InvariantCulture)} " +
+                $"{v[2].X.ToString(CultureInfo.InvariantCulture)} " +
+                $"{v[2].Y.ToString(CultureInfo.InvariantCulture)}";
             el.SetAttribute("d", d);
             el.SetAttribute("data-type", "curve");
             return el;
         }
 
-        public IFigure FromXml(XmlNode node) => throw new NotImplementedException("Load curve logic");
+        public IFigure FromXml(XmlNode node)
+        {
+            string d = node.Attributes!["d"]!.Value.Trim();
+
+            // "M x0 y0 Q x1 y1 x2 y2"
+            var tokens = d.Split(
+                new[] { ' ', '\t', '\n', '\r' },
+                StringSplitOptions.RemoveEmptyEntries);
+
+            // Убираем буквы команд, оставляем только числа
+            var nums = tokens
+                .Where(t => t != "M" && t != "Q" && t != "m" && t != "q")
+                .Select(t => double.Parse(t, CultureInfo.InvariantCulture))
+                .ToArray();
+
+            if (nums.Length < 6)
+                throw new InvalidDataException(
+                    $"Curve path must have 3 points (6 coords), got {nums.Length} coords.");
+
+            var start = new Point(nums[0], nums[1]);
+            var control = new Point(nums[2], nums[3]);
+            var end = new Point(nums[4], nums[5]);
+
+            return new Curve(new[] { start, control, end });
+        }
     }
 
     public class CurvedPolygonSerializer : IFigureSerializer
     {
-        public string SvgTagName => "path-poly";
+        // Фиктивный тег — реальный SVG-тег всё равно <path>,
+        // разрешение идёт через data-type в ResolveSerializer.
+        public string SvgTagName => "path-curvedpolygon";
         public Type FigureType => typeof(CurvedPolygon);
 
         public XmlElement ToXml(XmlDocument doc, IFigure figure)
         {
             var el = doc.CreateElement("path");
             el.SetAttribute("data-type", "CurvedPolygon");
+
             var v = figure.Vertex;
             var sb = new StringBuilder();
             for (int i = 0; i < v.Length; i += 3)
             {
-                sb.Append($"M {v[i].X.ToString(CultureInfo.InvariantCulture)} {v[i].Y.ToString(CultureInfo.InvariantCulture)} ");
-                sb.Append($"Q {v[i + 1].X.ToString(CultureInfo.InvariantCulture)} {v[i + 1].Y.ToString(CultureInfo.InvariantCulture)} ");
-                sb.Append($"{v[i + 2].X.ToString(CultureInfo.InvariantCulture)} {v[i + 2].Y.ToString(CultureInfo.InvariantCulture)} ");
+                sb.Append(
+                    $"M {v[i].X.ToString(CultureInfo.InvariantCulture)} " +
+                    $"{v[i].Y.ToString(CultureInfo.InvariantCulture)} ");
+                sb.Append(
+                    $"Q {v[i + 1].X.ToString(CultureInfo.InvariantCulture)} " +
+                    $"{v[i + 1].Y.ToString(CultureInfo.InvariantCulture)} ");
+                sb.Append(
+                    $"{v[i + 2].X.ToString(CultureInfo.InvariantCulture)} " +
+                    $"{v[i + 2].Y.ToString(CultureInfo.InvariantCulture)} ");
             }
+
             el.SetAttribute("d", sb.ToString().Trim());
             return el;
         }
@@ -362,18 +530,27 @@ namespace InputOutput
         public IFigure FromXml(XmlNode node)
         {
             string d = node.Attributes!["d"]!.Value;
-            var parts = d.Split('M', StringSplitOptions.RemoveEmptyEntries);
+            var segments = d.Split('M', StringSplitOptions.RemoveEmptyEntries);
             var points = new List<Point>();
-            foreach (var part in parts)
+
+            foreach (var seg in segments)
             {
-                var coords = part.Replace("Q", "").Trim().Split([' '], StringSplitOptions.RemoveEmptyEntries);
+                var coords = seg.Replace("Q", "").Trim()
+                    .Split([' '], StringSplitOptions.RemoveEmptyEntries);
                 if (coords.Length >= 6)
                 {
-                    points.Add(new Point(double.Parse(coords[0], CultureInfo.InvariantCulture), double.Parse(coords[1], CultureInfo.InvariantCulture)));
-                    points.Add(new Point(double.Parse(coords[2], CultureInfo.InvariantCulture), double.Parse(coords[3], CultureInfo.InvariantCulture)));
-                    points.Add(new Point(double.Parse(coords[4], CultureInfo.InvariantCulture), double.Parse(coords[5], CultureInfo.InvariantCulture)));
+                    points.Add(new Point(
+                        double.Parse(coords[0], CultureInfo.InvariantCulture),
+                        double.Parse(coords[1], CultureInfo.InvariantCulture)));
+                    points.Add(new Point(
+                        double.Parse(coords[2], CultureInfo.InvariantCulture),
+                        double.Parse(coords[3], CultureInfo.InvariantCulture)));
+                    points.Add(new Point(
+                        double.Parse(coords[4], CultureInfo.InvariantCulture),
+                        double.Parse(coords[5], CultureInfo.InvariantCulture)));
                 }
             }
+
             return new CurvedPolygon(points.ToArray());
         }
     }
