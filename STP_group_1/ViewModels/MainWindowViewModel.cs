@@ -646,7 +646,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         if (!await ConfirmLoseChangesIfDirtyAsync())
             return;
 
-        var path = await _dialogs.PickOpenFileAsync(new[] { ".graphify", ".json" });
+        var path = await _dialogs.PickOpenFileAsync(new[] { ".stp", ".json" });
         if (path is null)
             return;
 
@@ -678,7 +678,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         var path = CurrentProjectPath;
         if (string.IsNullOrWhiteSpace(path))
         {
-            path = await _dialogs.PickSaveFileAsync(defaultExtension: ".graphify", suggestedFileName: "project.graphify");
+            path = await _dialogs.PickSaveFileAsync(defaultExtension: ".stp", suggestedFileName: "project.stp");
             if (path is null)
                 return;
             CurrentProjectPath = path;

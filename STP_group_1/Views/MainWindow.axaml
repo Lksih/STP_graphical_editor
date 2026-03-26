@@ -76,20 +76,20 @@
 
         <!-- Top menu -->
         <Menu DockPanel.Dock="Top">
-            <MenuItem Header="_Файл">
-                <MenuItem Header="_Создать…" Command="{Binding NewCommand}" />
-                <MenuItem Header="_Открыть…" Command="{Binding OpenCommand}" />
+            <MenuItem Header="Файл">
+                <MenuItem Header="Создать…" Command="{Binding NewCommand}" />
+                <MenuItem Header="Открыть…" Command="{Binding OpenCommand}" />
                 <Separator/>
-                <MenuItem Header="_Сохранить" Command="{Binding SaveCommand}" />
-                <MenuItem Header="_Экспорт…" Command="{Binding ExportCommand}" />
+                <MenuItem Header="Сохранить" Command="{Binding SaveCommand}" />
+                <MenuItem Header="Экспорт в SVG" Command="{Binding ExportCommand}" />
                 <Separator/>
-                <MenuItem Header="В_ыход" Click="OnExitMenuClick" />
+                <MenuItem Header="Выход" Click="OnExitMenuClick" />
             </MenuItem>
-            <MenuItem Header="_Система">
-                <MenuItem Header="_Отменить" Command="{Binding UndoCommand}" InputGesture="Ctrl+Z" />
-                <MenuItem Header="_Повторить" Command="{Binding RedoCommand}" />
+            <MenuItem Header="Система">
+                <MenuItem Header="Отменить" Command="{Binding UndoCommand}" InputGesture="Ctrl+Z" />
+                <MenuItem Header="Повторить" Command="{Binding RedoCommand}" />
                 <Separator/>
-                <MenuItem Header="_Тема">
+                <MenuItem Header="Тема">
                     <MenuItem Header="Системная" Command="{Binding SelectThemeCommand}" CommandParameter="System" />
                     <MenuItem Header="Светлая" Command="{Binding SelectThemeCommand}" CommandParameter="Light" />
                     <MenuItem Header="Тёмная" Command="{Binding SelectThemeCommand}" CommandParameter="Dark" />
