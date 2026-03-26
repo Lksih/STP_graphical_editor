@@ -5,13 +5,14 @@ namespace Geometry
 {
     public class Line : IFigure
     {
-        public Point Center => (VertArray[0] + VertArray[1]) * 0.5;
+        public Point Center {get; private set;}
         public ReadOnlySpan<Point> Vertex => VertArray; //Линия определяется этим полем
         private Point[] VertArray;
 
         public Line(Point a, Point b) //Но фактически для вызова класса нужно два экземпляра класса Point
         {
             VertArray = [a, b];
+            Center = (a + b) / 2;
         }
         public void Scale(double dx, double dy)
         {
@@ -55,6 +56,7 @@ namespace Geometry
             if (NewVertex.Length != 2)
             throw new IncorrectVertexSpan("Линия должна задаваться 2-мя точками");
             VertArray = NewVertex.ToArray();
+            Center = (Vertex[0] + Vertex[1]) / 2;
         }
         public IEnumerable<IDrawFigure> Draw() => throw new NotImplementedException();
         public bool IsIn(Point p, double eps)
