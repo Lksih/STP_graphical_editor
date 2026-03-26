@@ -57,7 +57,6 @@ namespace Geometry
         void Rotate(double angle);
         void Move(double dx, double dy);
         void UpdateVertex(ReadOnlySpan<Point> Vertex);
-        IEnumerable<IDrawFigure> Draw();
         bool IsIn(Point p, double eps);
     }
     public class IncorrectScaleParameter : Exception
