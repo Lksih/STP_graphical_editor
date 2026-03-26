@@ -134,6 +134,10 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
             .ToProperty(this, x => x.ZoomFactor, out _zoomFactor);
 
         this.WhenAnyValue(x => x.ZoomPercent)
+            .Select(z => z > 100)
+            .ToProperty(this, x => x.IsMiniMapVisible, out _isMiniMapVisible);
+
+        this.WhenAnyValue(x => x.ZoomPercent)
             .Subscribe(z =>
             {
                 var text = $"{z}%";
@@ -381,6 +385,9 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
 
     private readonly ObservableAsPropertyHelper<double> _zoomFactor;
     public double ZoomFactor => _zoomFactor.Value;
+
+    private readonly ObservableAsPropertyHelper<bool> _isMiniMapVisible;
+    public bool IsMiniMapVisible => _isMiniMapVisible.Value;
 
     private readonly ObservableAsPropertyHelper<double> _canvasWidthZoomed;
     public double CanvasWidthZoomed => _canvasWidthZoomed.Value;

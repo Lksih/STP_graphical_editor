@@ -4,28 +4,57 @@
              xmlns:controls="using:STP_group_1.Views.Controls"
              x:Class="STP_group_1.Views.Controls.CanvasViewport"
              x:DataType="vm:MainWindowViewModel">
-	<Border Background="{DynamicResource SystemControlBackgroundBaseLowBrush}">
-		<ScrollViewer Name="PART_Scroll"
-					  HorizontalScrollBarVisibility="Auto"
-					  VerticalScrollBarVisibility="Auto"
-					  PointerWheelChanged="OnPointerWheelChanged">
-			<Border Name="PART_Canvas"
-				  Width="{Binding CanvasWidthZoomed}"
-				  Height="{Binding CanvasHeightZoomed}"
-				  Background="{Binding CanvasBackground}"
-				  Margin="24"
-				  BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-				  BorderThickness="1">
-				<controls:GeometryCanvas Figures="{Binding VisibleFigures}"
-										FigureGraphicPropertiesMap="{Binding VisibleFiguresGraphicProperties}"
-										SelectedFigure="{Binding SelectedFigure}"
-										ZoomFactor="{Binding ZoomFactor}"
-										Width="{Binding CanvasWidthZoomed}"
-										Height="{Binding CanvasHeightZoomed}"
-										Background="Transparent"/>
-			</Border>
-		</ScrollViewer>
-	</Border>
+    <Border Background="{DynamicResource SystemControlBackgroundBaseLowBrush}">
+        <Grid>
+            <ScrollViewer Name="PART_Scroll"
+                          HorizontalScrollBarVisibility="Auto"
+                          VerticalScrollBarVisibility="Auto"
+                          PointerWheelChanged="OnPointerWheelChanged">
+                <Border Name="PART_Canvas"
+                      Width="{Binding CanvasWidthZoomed}"
+                      Height="{Binding CanvasHeightZoomed}"
+                      Background="{Binding CanvasBackground}"
+                      Margin="24"
+                      BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                      BorderThickness="1">
+                    <controls:GeometryCanvas Figures="{Binding VisibleFigures}"
+                                            FigureGraphicPropertiesMap="{Binding VisibleFiguresGraphicProperties}"
+                                            SelectedFigure="{Binding SelectedFigure}"
+                                            ZoomFactor="{Binding ZoomFactor}"
+                                            Width="{Binding CanvasWidthZoomed}"
+                                            Height="{Binding CanvasHeightZoomed}"
+                                            Background="Transparent"/>
+                </Border>
+            </ScrollViewer>
+
+            <!-- Mini map overlay -->
+            <Border Name="PART_MiniMapContainer"
+                    IsVisible="{Binding IsMiniMapVisible}"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Bottom"
+                    Margin="16"
+                    Width="220"
+                    Height="160"
+                    CornerRadius="10"
+                    BorderThickness="1"
+                    BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                    Background="{DynamicResource SystemControlBackgroundChromeLowBrush}"
+                    Opacity="0.95">
+                <Canvas ClipToBounds="True">
+                    <controls:GeometryCanvas Name="PART_MiniMapCanvas"
+                                         Figures="{Binding VisibleFigures}"
+                                         FigureGraphicPropertiesMap="{Binding VisibleFiguresGraphicProperties}"
+                                         SelectedFigure="{Binding SelectedFigure}"
+                                         Background="{Binding CanvasBackground}"/>
+
+                    <Border Name="PART_MiniMapViewport"
+                            BorderThickness="2"
+                            BorderBrush="Red"
+                            Background="Transparent"
+                            Width="10"
+                            Height="10"/>
+                </Canvas>
+            </Border>
+        </Grid>
+    </Border>
 </UserControl>
-
-
