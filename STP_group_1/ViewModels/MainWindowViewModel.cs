@@ -28,6 +28,8 @@ public enum ToolKind
     Line,
     Polygon,
     Ellipse,
+    Curve,
+    CurvedPolygon
 }
 
 public enum ActiveColorTarget
@@ -84,7 +86,17 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         // ---- Derived properties (ReactiveUI way) ----
 
         this.WhenAnyValue(x => x.SelectedTool)
-            .Select(t => t.ToString())
+            .Select(t => t switch
+            {
+                ToolKind.Move => "Перемещение",
+                ToolKind.Eraser => "Ластик",
+                ToolKind.Line => "Линия",
+                ToolKind.Polygon => "Многоугольник",
+                ToolKind.Ellipse => "Эллипс",
+                ToolKind.Curve => "Кривая",
+                ToolKind.CurvedPolygon => "Кривой полином",
+                _ => t.ToString()
+            })
             .ToProperty(this, x => x.SelectedToolDisplayName, out _selectedToolDisplayName);
 
         this.WhenAnyValue(x => x.SelectedTool)
@@ -106,6 +118,14 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         this.WhenAnyValue(x => x.SelectedTool)
             .Select(t => t == ToolKind.Ellipse)
             .ToProperty(this, x => x.IsEllipseTool, out _isEllipseTool);
+
+        this.WhenAnyValue(x => x.SelectedTool)
+            .Select(t => t == ToolKind.Curve)
+            .ToProperty(this, x => x.IsCurveTool, out _isCurveTool);
+
+        this.WhenAnyValue(x => x.SelectedTool)
+            .Select(t => t == ToolKind.CurvedPolygon)
+            .ToProperty(this, x => x.IsCurvedPolygonTool, out _isCurvedPolygonTool);
 
         this.WhenAnyValue(x => x.ZoomPercent)
             .Select(z => z / 100.0)
@@ -265,6 +285,12 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
 
     private readonly ObservableAsPropertyHelper<bool> _isEllipseTool;
     public bool IsEllipseTool => _isEllipseTool.Value;
+
+    private readonly ObservableAsPropertyHelper<bool> _isCurveTool;
+    public bool IsCurveTool => _isCurveTool.Value;
+
+    private readonly ObservableAsPropertyHelper<bool> _isCurvedPolygonTool;
+    public bool IsCurvedPolygonTool => _isCurvedPolygonTool.Value;
     public bool IsForegroundActive => ActiveColorTarget == ActiveColorTarget.Foreground;
     public bool IsCanvasBackgroundActive => ActiveColorTarget == ActiveColorTarget.Background;
 
@@ -517,6 +543,8 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
     private Geometry.Point? _lineStart;
     private readonly List<Geometry.Point> _polygonPoints = new();
     private Geometry.Point? _ellipseCenter;
+    private readonly List<Geometry.Point> _curvePoints = new();
+    private readonly List<Geometry.Point> _curvedPolygonPoints = new();
 
     // ---------- Commands (public for XAML bindings) ----------
 
@@ -555,7 +583,20 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
     private void SelectTool(string? tool)
     {
         if (Enum.TryParse<ToolKind>(tool, ignoreCase: true, out var parsed))
+        {
+            if (SelectedTool != parsed)
+            {
+                // сбрасываем наборы точек ввода при переключении режимов
+                // (чтобы случайно не создать фигуру из частично введенных данных).
+                _lineStart = null;
+                _polygonPoints.Clear();
+                _ellipseCenter = null;
+                _curvePoints.Clear();
+                _curvedPolygonPoints.Clear();
+            }
+
             SelectedTool = parsed;
+        }
     }
 
 
@@ -737,7 +778,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
     {
         shouldStartDragging = false;
 
-        if (SelectedTool == ToolKind.Line || SelectedTool == ToolKind.Polygon || SelectedTool == ToolKind.Ellipse)
+        if (SelectedTool == ToolKind.Line || SelectedTool == ToolKind.Polygon || SelectedTool == ToolKind.Ellipse || SelectedTool == ToolKind.Curve || SelectedTool == ToolKind.CurvedPolygon)
         {
             if (SelectedTool == ToolKind.Line && isLeftButtonPressed)
             {
@@ -792,6 +833,50 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
                 }
 
                 return true;
+            }
+
+            if (SelectedTool == ToolKind.Curve)
+            {
+                if (isLeftButtonPressed)
+                {
+                    _curvePoints.Add(modelPoint);
+                    if (_curvePoints.Count == 3)
+                    {
+                        AddNewFigure(new Curve(_curvePoints.ToArray()));
+                        _curvePoints.Clear();
+                    }
+                    return true;
+                }
+
+                // отмена ввода кривой правой кнопкой
+                if (isRightButtonPressed)
+                {
+                    _curvePoints.Clear();
+                    return true;
+                }
+            }
+
+            if (SelectedTool == ToolKind.CurvedPolygon)
+            {
+                if (isLeftButtonPressed)
+                {
+                    _curvedPolygonPoints.Add(modelPoint);
+                    return true;
+                }
+
+                // завершение ввода правой кнопкой
+                if (isRightButtonPressed)
+                {
+                    // `CurvedPolygon` требует четное число точек, а проектная сериализация
+                    // дополнительно ожидает кратность 3.
+                    var count = _curvedPolygonPoints.Count;
+                    if (count >= 6 && count % 2 == 0 && count % 3 == 0)
+                    {
+                        AddNewFigure(new CurvedPolygon(_curvedPolygonPoints.ToArray()));
+                        _curvedPolygonPoints.Clear();
+                        return true;
+                    }
+                }
             }
         }
 
