@@ -33,6 +33,17 @@ namespace Geometry
                 dist.X *= dx;
                 dist.Y *= dy;
                 VertArray[i] = Center + dist;
+                double cnstX = 1e-15, cnstY = 1e-15;
+                while (VertArray[i].X == Center.X && dist.X != 0)
+                    {
+                        VertArray[i].X += dist.X > 0 ? cnstX : -cnstX;
+                        cnstX *= 10;
+                    }
+                while (VertArray[i].Y == Center.Y && dist.Y != 0)
+                    {
+                        VertArray[i].Y += dist.Y > 0 ? cnstY : -cnstY;
+                        cnstY *= 10;
+                    }
             }
         }
         public void RadialScale(double dr)
