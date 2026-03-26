@@ -21,6 +21,35 @@
     <Style Selector="ListBox#LayersList ListBoxItem:selected Border">
         <Setter Property="Background" Value="{DynamicResource SystemControlHighlightListLowBrush}" />
     </Style>
+
+    <!-- Unified style for tool/mode buttons in the left toolbar -->
+    <Style Selector="ToggleButton.ToolModeButton">
+        <Setter Property="Width" Value="110" />
+        <Setter Property="Height" Value="48" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+        <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.ToolModeButton:checked">
+        <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseHighBrush}" />
+        <Setter Property="Background" Value="{DynamicResource SystemControlHighlightListLowBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource SystemControlForegroundBaseHighBrush}" />
+    </Style>
+
+    <Style Selector="Button.ToolModeButton">
+        <Setter Property="Width" Value="110" />
+        <Setter Property="Height" Value="48" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+        <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+    </Style>
+
 </Window.Styles>
 
     <Window.KeyBindings>
@@ -97,21 +126,23 @@
                 <StackPanel>
                     <TextBlock Text="Инструменты" Margin="2,0,0,2" FontWeight="SemiBold"/>
                     <UniformGrid Columns="2">
-                        <ToggleButton Margin="2"
+                        <ToggleButton Classes="ToolModeButton"
+                                      Margin="2"
                                       ToolTip.Tip="Перемещение (V)"
                                       IsChecked="{Binding IsMoveTool}"
                                       Command="{Binding SelectToolCommand}" CommandParameter="Move">
                             <TextBlock Text="↕" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </ToggleButton>
 
-                        <ToggleButton Margin="2"
+                        <ToggleButton Classes="ToolModeButton"
+                                      Margin="2"
                                       ToolTip.Tip="Удаление объекта (E)"
                                       IsChecked="{Binding IsEraserTool}"
                                       Command="{Binding SelectToolCommand}" CommandParameter="Eraser">
                             <TextBlock Text="Del" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </ToggleButton>
 
-                        <Button Classes="RotateActionButton"
+                        <Button Classes="ToolModeButton RotateActionButton"
                                 Margin="2"
                                 ToolTip.Tip="Повернуть выделенную фигуру (R)"
                                 Command="{Binding RotateSelectedFigureCommand}">
@@ -120,6 +151,18 @@
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Center"/>
                         </Button>
+
+                        <ToggleButton Classes="ToolModeButton"
+                                      Margin="2"
+                                      ToolTip.Tip="Заливка: включить режим, клик по фигуре включает/выключает заливку"
+                                      IsChecked="{Binding IsFillToolActive}">
+                            <TextBlock Text="Заливка"
+                                       FontSize="11"
+                                       FontWeight="SemiBold"
+                                       TextAlignment="Center"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"/>
+                        </ToggleButton>
                     </UniformGrid>
                 </StackPanel>
 
@@ -127,25 +170,52 @@
                 <StackPanel Margin="0,12,0,0">
                     <TextBlock Text="Фигуры (режим)" Margin="2,0,0,2" FontWeight="SemiBold"/>
                     <UniformGrid Columns="2">
-                        <ToggleButton Margin="2"
+                        <ToggleButton Classes="ToolModeButton"
+                                      Margin="2"
                                       ToolTip.Tip="Режим: линия (L)"
                                       IsChecked="{Binding IsLineTool}"
                                       Command="{Binding SelectToolCommand}" CommandParameter="Line">
                             <TextBlock Text="Line" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </ToggleButton>
 
-                        <ToggleButton Margin="2"
+                        <ToggleButton Classes="ToolModeButton"
+                                      Margin="2"
                                       ToolTip.Tip="Режим: многоугольник (P)"
                                       IsChecked="{Binding IsPolygonTool}"
                                       Command="{Binding SelectToolCommand}" CommandParameter="Polygon">
                             <TextBlock Text="Poly" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </ToggleButton>
 
-                        <ToggleButton Margin="2"
+                        <ToggleButton Classes="ToolModeButton"
+                                      Margin="2"
                                       ToolTip.Tip="Режим: эллипс (O)"
                                       IsChecked="{Binding IsEllipseTool}"
                                       Command="{Binding SelectToolCommand}" CommandParameter="Ellipse">
                             <TextBlock Text="Ellipse" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </ToggleButton>
+
+                        <ToggleButton Classes="ToolModeButton"
+                                      Margin="2"
+                                      ToolTip.Tip="Режим: кривая (3 точки, ПКМ — отмена ввода)"
+                                      IsChecked="{Binding IsCurveTool}"
+                                      Command="{Binding SelectToolCommand}" CommandParameter="Curve">
+                            <TextBlock Text="Кривая" FontSize="11" FontWeight="SemiBold"
+                                       TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </ToggleButton>
+
+                        <ToggleButton Classes="ToolModeButton"
+                                      Margin="2"
+                                      ToolTip.Tip="Режим: кривой полином (ввод точек, кол-во кратно 6; ПКМ — завершить)"
+                                      IsChecked="{Binding IsCurvedPolygonTool}"
+                                      Command="{Binding SelectToolCommand}" CommandParameter="CurvedPolygon">
+                            <TextBlock Text="Кривой полином"
+                                       FontSize="10"
+                                       FontWeight="SemiBold"
+                                       TextAlignment="Center"
+                                       TextWrapping="Wrap"
+                                       MaxLines="2"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"/>
                         </ToggleButton>
                     </UniformGrid>
                 </StackPanel>

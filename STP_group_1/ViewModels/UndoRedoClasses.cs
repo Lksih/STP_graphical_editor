@@ -1,4 +1,4 @@
-﻿using Geometry;
+using Geometry;
 using ReactiveUI;
 using System;
 using System.Collections.Generic;
@@ -275,6 +275,45 @@ namespace STP_group_1.ViewModels
         public void AddCommand(IUndoRedoCommand command)
         {
             _commands.Add(command);
+        }
+    }
+
+    public class ToggleFillFigureCommand : IUndoRedoCommand
+    {
+        private readonly Dictionary<IFigure, IFigureGraphicProperties> _layerFigureGraphicProperties;
+        private readonly Dictionary<IFigure, IFigureGraphicProperties> _visibleFigureGraphicProperties;
+        private readonly IFigure _figure;
+        private readonly IFigureGraphicProperties _oldFigureGraphicProperties;
+        private readonly IFigureGraphicProperties _newFigureGraphicProperties;
+
+        public ToggleFillFigureCommand(
+            Dictionary<IFigure, IFigureGraphicProperties> layerFigureGraphicProperties,
+            Dictionary<IFigure, IFigureGraphicProperties> visibleFigureGraphicProperties,
+            IFigure figure,
+            IFigureGraphicProperties oldFigureGraphicProperties,
+            IFigureGraphicProperties newFigureGraphicProperties)
+        {
+            _layerFigureGraphicProperties = layerFigureGraphicProperties;
+            _visibleFigureGraphicProperties = visibleFigureGraphicProperties;
+            _figure = figure;
+            _oldFigureGraphicProperties = oldFigureGraphicProperties;
+            _newFigureGraphicProperties = newFigureGraphicProperties;
+        }
+
+        public string Description => "Переключить заливку фигуры";
+
+        public void Execute()
+        {
+            _layerFigureGraphicProperties[_figure] = _newFigureGraphicProperties;
+            if (_visibleFigureGraphicProperties.ContainsKey(_figure))
+                _visibleFigureGraphicProperties[_figure] = _newFigureGraphicProperties;
+        }
+
+        public void Undo()
+        {
+            _layerFigureGraphicProperties[_figure] = _oldFigureGraphicProperties;
+            if (_visibleFigureGraphicProperties.ContainsKey(_figure))
+                _visibleFigureGraphicProperties[_figure] = _oldFigureGraphicProperties;
         }
     }
 }

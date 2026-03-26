@@ -231,6 +231,120 @@ public sealed class GeometryCanvas : Control
 
         var pen = new Pen(new SolidColorBrush(color), thickness);
 
+        var isFilled = false;
+        var fillColor = color;
+        if (FigureGraphicPropertiesMap is not null && FigureGraphicPropertiesMap.TryGetValue(figure, out var props2))
+        {
+            isFilled = props2.IsFilled;
+            fillColor = props2.FillColor;
+        }
+
+        var fillBrush = isFilled
+            ? new SolidColorBrush(new Color(
+                (byte)Math.Clamp((int)(fillColor.A * 0.25), 0, 255),
+                fillColor.R,
+                fillColor.G,
+                fillColor.B))
+            : null;
+
+        // Special drawing for curves (better than "control-point polyline").
+        if (figure is Curve && verts.Length == 3)
+        {
+            var p0 = verts[0];
+            var p1 = verts[1];
+            var p2 = verts[2];
+
+            var len01 = Math.Sqrt(Math.Pow(p1.X - p0.X, 2) + Math.Pow(p1.Y - p0.Y, 2));
+            var len12 = Math.Sqrt(Math.Pow(p2.X - p1.X, 2) + Math.Pow(p2.Y - p1.Y, 2));
+            var approxLen = len01 + len12;
+            var segments = (int)Math.Clamp(approxLen * ZoomFactor / 6.0, 16, 128);
+
+            var geo = new StreamGeometry();
+            using (var g = geo.Open())
+            {
+                g.BeginFigure(new Avalonia.Point(p0.X * ZoomFactor, p0.Y * ZoomFactor), false);
+
+                for (int i = 1; i <= segments; i++)
+                {
+                    var t = (double)i / segments;
+                    var oneMinusT = 1.0 - t;
+                    var currX =
+                        oneMinusT * oneMinusT * p0.X +
+                        2 * oneMinusT * t * p1.X +
+                        t * t * p2.X;
+                    var currY =
+                        oneMinusT * oneMinusT * p0.Y +
+                        2 * oneMinusT * t * p1.Y +
+                        t * t * p2.Y;
+
+                    g.LineTo(new Avalonia.Point(currX * ZoomFactor, currY * ZoomFactor));
+                }
+
+                g.EndFigure(false);
+            }
+
+            ctx.DrawGeometry(null, pen, geo);
+            return;
+        }
+
+        if (figure is CurvedPolygon)
+        {
+            var points = new List<Geometry.Point>();
+
+            void SampleSegment(Geometry.Point a, Geometry.Point b, Geometry.Point c)
+            {
+                var len01 = Math.Sqrt(Math.Pow(b.X - a.X, 2) + Math.Pow(b.Y - a.Y, 2));
+                var len12 = Math.Sqrt(Math.Pow(c.X - b.X, 2) + Math.Pow(c.Y - b.Y, 2));
+                var approxLen = len01 + len12;
+
+                var segs = (int)Math.Clamp(approxLen * ZoomFactor / 6.0, 8, 96);
+
+                for (int j = 0; j <= segs; j++)
+                {
+                    // avoid duplicate point at joints between segments
+                    if (points.Count > 0 && j == 0)
+                        continue;
+
+                    var t = (double)j / segs;
+                    var oneMinusT = 1.0 - t;
+                    var currX =
+                        oneMinusT * oneMinusT * a.X +
+                        2 * oneMinusT * t * b.X +
+                        t * t * c.X;
+                    var currY =
+                        oneMinusT * oneMinusT * a.Y +
+                        2 * oneMinusT * t * b.Y +
+                        t * t * c.Y;
+
+                    points.Add(new Geometry.Point(currX, currY));
+                }
+            }
+
+            // CurvedPolygon stores quadratic curve control points in triples: (p0, p1, p2)
+            for (int i = 0; i < verts.Length - 2; i += 3)
+                SampleSegment(verts[i], verts[i + 1], verts[i + 2]);
+
+            // close the cycle with the "wrap-around" segment
+            if (verts.Length >= 3)
+                SampleSegment(verts[verts.Length - 2], verts[verts.Length - 1], verts[0]);
+
+            if (points.Count >= 2)
+            {
+                var geo = new StreamGeometry();
+                using (var g = geo.Open())
+                {
+                    g.BeginFigure(new Avalonia.Point(points[0].X * ZoomFactor, points[0].Y * ZoomFactor), isFilled);
+                    for (int i = 1; i < points.Count; i++)
+                        g.LineTo(new Avalonia.Point(points[i].X * ZoomFactor, points[i].Y * ZoomFactor));
+                    g.EndFigure(true);
+                }
+
+                // DrawGeometry с заполнением (fillBrush != null) также рисует контур.
+                ctx.DrawGeometry(fillBrush, pen, geo);
+                return;
+            }
+        }
+
         if (verts.Length == 2)
         {
             var p1 = new Avalonia.Point(verts[0].X * ZoomFactor, verts[0].Y * ZoomFactor);
@@ -242,7 +356,7 @@ public sealed class GeometryCanvas : Control
             var geo = new StreamGeometry();
             using (var g = geo.Open())
             {
-                g.BeginFigure(new Avalonia.Point(verts[0].X * ZoomFactor, verts[0].Y * ZoomFactor), true);
+                g.BeginFigure(new Avalonia.Point(verts[0].X * ZoomFactor, verts[0].Y * ZoomFactor), isFilled);
                 for (var i = 1; i < verts.Length; i++)
                 {
                     g.LineTo(new Avalonia.Point(verts[i].X * ZoomFactor, verts[i].Y * ZoomFactor));
@@ -250,12 +364,16 @@ public sealed class GeometryCanvas : Control
                 g.EndFigure(true);
             }
 
-            ctx.DrawGeometry(null, pen, geo);
+            // DrawGeometry с заполнением (fillBrush != null) также рисует контур.
+            ctx.DrawGeometry(fillBrush, pen, geo);
         }
         else
         {
             var centerPt = new Avalonia.Point(center.X * ZoomFactor, center.Y * ZoomFactor);
-            ctx.DrawEllipse(null, pen, centerPt, verts[0].X, verts[0].Y);
+            if (fillBrush is not null)
+                ctx.DrawEllipse(fillBrush, pen, centerPt, verts[0].X, verts[0].Y);
+            else
+                ctx.DrawEllipse(null, pen, centerPt, verts[0].X, verts[0].Y);
         }
     }
 }
