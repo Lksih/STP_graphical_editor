@@ -1,15 +1,28 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="STP_group_1.App"
-             xmlns:local="using:STP_group_1"
+             xmlns:vm="using:STP_group_1.ViewModels"
+             xmlns:views="using:STP_group_1.Views"
+             xmlns:dialogs="using:STP_group_1.Views.Dialogs"
+             xmlns:dialogvm="using:STP_group_1.ViewModels.Dialogs"
              RequestedThemeVariant="Default">
-             <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
 
-    <Application.DataTemplates>
-        <local:ViewLocator/>
-    </Application.DataTemplates>
-  
-    <Application.Styles>
-        <FluentTheme />
-    </Application.Styles>
+	<Application.DataTemplates>
+		<DataTemplate DataType="{x:Type vm:MainWindowViewModel}">
+			<views:MainWindow/>
+		</DataTemplate>
+
+		<DataTemplate DataType="{x:Type dialogvm:ConfirmDialogViewModel}">
+			<dialogs:ConfirmDialog/>
+		</DataTemplate>
+
+		<DataTemplate DataType="{x:Type dialogvm:NewCanvasDialogViewModel}">
+			<dialogs:NewCanvasDialog/>
+		</DataTemplate>
+	</Application.DataTemplates>
+
+	<Application.Styles>
+		<FluentTheme />
+		<StyleInclude Source="avares://Avalonia.Controls.ColorPicker/Themes/Fluent/Fluent.xaml" />
+	</Application.Styles>
 </Application>

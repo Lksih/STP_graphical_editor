@@ -1,0 +1,29 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:STP_group_1.ViewModels.Dialogs"
+        x:Class="STP_group_1.Views.Dialogs.NewCanvasDialog"
+        x:DataType="vm:NewCanvasDialogViewModel"
+        Width="460" Height="240"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        Title="Новый холст">
+  <DockPanel Margin="16">
+    <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+      <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Text="Ширина:"/>
+      <NumericUpDown Grid.Row="0" Grid.Column="1" Minimum="1" Maximum="20000" Value="{Binding Width}" />
+
+      <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Text="Высота:"/>
+      <NumericUpDown Grid.Row="1" Grid.Column="1" Minimum="1" Maximum="20000" Value="{Binding Height}" />
+
+      <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Text="Фон:"/>
+      <ColorPicker Grid.Row="2" Grid.Column="1" Color="{Binding Background}" />
+    </Grid>
+
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,16,0,0">
+      <Button Content="Отмена" IsCancel="True" Command="{Binding CancelCommand}" />
+      <Button Content="Создать" IsDefault="True" Command="{Binding OkCommand}" />
+    </StackPanel>
+  </DockPanel>
+</Window>
+
+

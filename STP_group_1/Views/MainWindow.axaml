@@ -1,20 +1,319 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:STP_group_1.ViewModels"
+        xmlns:controls="using:STP_group_1.Views.Controls"
+        xmlns:conv="using:STP_group_1.Converters"
+		xmlns:avc="clr-namespace:Avalonia.Controls;assembly=Avalonia.Controls.ColorPicker"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="STP_group_1.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
+        x:Name="Root"
         Icon="/Assets/avalonia-logo.ico"
         Title="STP_group_1">
 
     <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <TextBlock Text="{Binding Greeting}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+    <Window.Styles>
+        <Style Selector="ListBox#LayersList ListBoxItem:selected Border">
+            <Setter Property="Background" Value="{DynamicResource SystemControlHighlightListLowBrush}" />
+        </Style>
+    </Window.Styles>
 
+    <Window.KeyBindings>
+        <KeyBinding Gesture="Ctrl+Z" Command="{Binding UndoCommand}" />
+        <KeyBinding Gesture="Ctrl+Y" Command="{Binding RedoCommand}" />
+        <KeyBinding Gesture="Ctrl+Shift+Z" Command="{Binding RedoCommand}" />
+
+        <KeyBinding Gesture="E" Command="{Binding SelectToolCommand}" CommandParameter="Eraser" />
+        <KeyBinding Gesture="V" Command="{Binding SelectToolCommand}" CommandParameter="Move" />
+        <KeyBinding Gesture="R" Command="{Binding RotateSelectedFigureCommand}" />
+        <KeyBinding Gesture="L" Command="{Binding SelectToolCommand}" CommandParameter="Line" />
+        <KeyBinding Gesture="P" Command="{Binding SelectToolCommand}" CommandParameter="Polygon" />
+        <KeyBinding Gesture="O" Command="{Binding SelectToolCommand}" CommandParameter="Ellipse" />
+    </Window.KeyBindings>
+
+    <DockPanel>
+        <DockPanel.Resources>
+            <conv:ColorToBrushConverter x:Key="ColorToBrush" />
+            <conv:BoolToEyeGlyphConverter x:Key="BoolToEyeGlyph" />
+            <conv:BoolToOpacityConverter x:Key="BoolToOpacity" />
+        </DockPanel.Resources>
+        
+        <!-- Top menu -->
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="_Файл">
+                <MenuItem Header="_Создать…" Command="{Binding NewCommand}" />
+                <MenuItem Header="_Открыть…" Command="{Binding OpenCommand}" />
+                <Separator/>
+                <MenuItem Header="_Сохранить" Command="{Binding SaveCommand}" />
+                <MenuItem Header="_Экспорт…" Command="{Binding ExportCommand}" />
+                <Separator/>
+                <MenuItem Header="В_ыход" Command="{Binding ExitCommand}" />
+            </MenuItem>
+            <MenuItem Header="_Система">
+                <MenuItem Header="_Отменить" Command="{Binding UndoCommand}" InputGesture="Ctrl+Z" />
+                <MenuItem Header="_Повторить" Command="{Binding RedoCommand}" />
+                <Separator/>
+                <MenuItem Header="_Тема">
+                    <MenuItem Header="Системная" Command="{Binding SelectThemeCommand}" CommandParameter="System" />
+                    <MenuItem Header="Светлая" Command="{Binding SelectThemeCommand}" CommandParameter="Light" />
+                    <MenuItem Header="Тёмная" Command="{Binding SelectThemeCommand}" CommandParameter="Dark" />
+                </MenuItem>
+            </MenuItem>
+        </Menu>
+
+        <!-- Properties strip -->
+        <Border DockPanel.Dock="Top" Background="{DynamicResource SystemControlBackgroundBaseLowBrush}" Padding="8">
+            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                <TextBlock Text="{Binding SelectedToolDisplayName}" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                <Separator Width="1" Margin="8,0"/>
+
+                <Button Content="-" Command="{Binding ZoomOutCommand}" />
+                <TextBox Width="70" Text="{Binding ZoomPercentText}" />
+                <Button Content="+" Command="{Binding ZoomInCommand}" />
+                
+                <!-- Undo/Redo descriptions -->
+                <TextBlock Text="{Binding UndoDescription}" 
+                           Margin="10,0" 
+                           Opacity="0.7"
+                           VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding RedoDescription}" 
+                           Margin="10,0" 
+                           Opacity="0.7"
+                           VerticalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Left toolbar -->
+        <Border DockPanel.Dock="Left"
+                Background="{DynamicResource SystemControlBackgroundBaseLowBrush}"
+                Padding="8">
+            <StackPanel Spacing="10">
+                <!-- Tools group -->
+                <StackPanel>
+                    <TextBlock Text="Инструменты" Margin="2,0,0,2" FontWeight="SemiBold"/>
+                    <UniformGrid Columns="2">
+                        <ToggleButton Margin="2"
+                                      ToolTip.Tip="Перемещение (V)"
+                                      IsChecked="{Binding IsMoveTool}"
+                                      Command="{Binding SelectToolCommand}" CommandParameter="Move">
+                            <TextBlock Text="↕" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </ToggleButton>
+
+                        <ToggleButton Margin="2"
+                                      ToolTip.Tip="Удаление объекта (E)"
+                                      IsChecked="{Binding IsEraserTool}"
+                                      Command="{Binding SelectToolCommand}" CommandParameter="Eraser">
+                            <TextBlock Text="Del" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </ToggleButton>
+
+                        <Button Classes="RotateActionButton"
+                                Margin="2"
+                                ToolTip.Tip="Повернуть выделенную фигуру (R)"
+                                Command="{Binding RotateSelectedFigureCommand}">
+                            <TextBlock Text="⟳"
+                                       FontSize="14"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"/>
+                        </Button>
+                    </UniformGrid>
+                </StackPanel>
+
+                <!-- Figure tools -->
+                <StackPanel Margin="0,12,0,0">
+                    <TextBlock Text="Фигуры (режим)" Margin="2,0,0,2" FontWeight="SemiBold"/>
+                    <UniformGrid Columns="2">
+                        <ToggleButton Margin="2"
+                                      ToolTip.Tip="Режим: линия (L)"
+                                      IsChecked="{Binding IsLineTool}"
+                                      Command="{Binding SelectToolCommand}" CommandParameter="Line">
+                            <TextBlock Text="Line" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </ToggleButton>
+
+                        <ToggleButton Margin="2"
+                                      ToolTip.Tip="Режим: многоугольник (P)"
+                                      IsChecked="{Binding IsPolygonTool}"
+                                      Command="{Binding SelectToolCommand}" CommandParameter="Polygon">
+                            <TextBlock Text="Poly" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </ToggleButton>
+
+                        <ToggleButton Margin="2"
+                                      ToolTip.Tip="Режим: эллипс (O)"
+                                      IsChecked="{Binding IsEllipseTool}"
+                                      Command="{Binding SelectToolCommand}" CommandParameter="Ellipse">
+                            <TextBlock Text="Ellipse" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </ToggleButton>
+                    </UniformGrid>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- Right panel: Colors + Layers -->
+        <Border DockPanel.Dock="Right" Background="{DynamicResource SystemControlBackgroundBaseLowBrush}" Padding="10" Width="300">
+            <DockPanel>
+                <!-- Colors -->
+                <StackPanel DockPanel.Dock="Top" Spacing="10">
+                    <TextBlock Text="Активные цвета" FontWeight="SemiBold"/>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Width="44"
+                                Height="44"
+                                Padding="0"
+                                ToolTip.Tip="Foreground"
+                                Command="{Binding SelectActiveColorTargetCommand}"
+                                CommandParameter="Foreground">
+                            <Border CornerRadius="6"
+                                    BorderThickness="1"
+                                    BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                    Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
+                                <Border Margin="2"
+                                        CornerRadius="4"
+                                        Background="{Binding ForegroundColor, Converter={StaticResource ColorToBrush}}"/>
+                            </Border>
+                        </Button>
+
+                        <Button Width="44"
+                                Height="44"
+                                Padding="0"
+                                ToolTip.Tip="Background"
+                                Command="{Binding SelectActiveColorTargetCommand}"
+                                CommandParameter="Background">
+                            <Border CornerRadius="6"
+                                    BorderThickness="1"
+                                    BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                    Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
+                                <Border Margin="2"
+                                        CornerRadius="4"
+                                        Background="{Binding CanvasBackground, Converter={StaticResource ColorToBrush}}"/>
+                            </Border>
+                        </Button>
+                    </StackPanel>
+
+                    <Border Margin="0,6,0,0"
+                            Padding="8"
+                            CornerRadius="8"
+                            BorderThickness="1"
+                            BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                            Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                            IsVisible="{Binding IsColorPickerVisible}">
+                        <Viewbox Width="210"
+                                 Height="235"
+                                 Stretch="Uniform">
+                            <avc:ColorView Color="{Binding ActiveColor}"
+                                           ColorSpectrumShape="Ring"
+                                           Width="340"
+                                           Height="380"/>
+                        </Viewbox>
+                    </Border>
+
+                    <TextBlock Text="Предыдущие цвета"
+                               FontWeight="SemiBold"
+                               IsVisible="{Binding HasRecentColors}" />
+                    <ItemsControl ItemsSource="{Binding RecentColors}"
+                                  IsVisible="{Binding HasRecentColors}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel ItemWidth="26" ItemHeight="26" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Width="24"
+                                        Height="24"
+                                        Padding="0"
+                                        CornerRadius="4"
+                                        BorderThickness="1"
+                                        BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                        Background="{Binding ., Converter={StaticResource ColorToBrush}}"
+                                        Command="{Binding $parent[Window].DataContext.ApplyRecentColorCommand}"
+                                        CommandParameter="{Binding .}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Separator/>
+                </StackPanel>
+
+                <!-- Layers -->
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="Слои" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <Button Content="+" ToolTip.Tip="New layer" Command="{Binding NewLayerCommand}" />
+                        <Button Content="🗑" ToolTip.Tip="Delete layer" Command="{Binding DeleteLayerCommand}" />
+                    </StackPanel>
+
+                    <ListBox Name="LayersList"
+                             DragDrop.AllowDrop="True"
+                             ItemsSource="{Binding Layers}"
+                             SelectedItem="{Binding SelectedLayer}"
+                             Margin="0,8,0,0">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border CornerRadius="8"
+                                        Padding="8"
+                                        Margin="0,0,0,6"
+                                        Background="{DynamicResource SystemControlBackgroundChromeLowBrush}">
+                                    <Grid ColumnDefinitions="Auto,Auto,Auto,*"
+                                          ColumnSpacing="8">
+                    
+                                        <!-- Ручка перетаскивания -->
+                                        <Border Grid.Column="0"
+                                                Classes="LayerDragHandle"
+                                                Width="28"
+                                                Height="28"
+                                                Cursor="SizeAll"
+                                                ToolTip.Tip="Перетащить слой"
+                                                PointerPressed="OnLayerDragHandlePressed"
+                                                PointerMoved="OnLayerDragHandleMoved"
+                                                PointerReleased="OnLayerDragHandleReleased"
+                                                Background="Transparent">
+                                            <TextBlock Text="≡"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"/>
+                                        </Border>
+
+                                        <!-- Видимость -->
+                                        <ToggleButton Grid.Column="1"
+                                                      Width="28"
+                                                      Height="28"
+                                                      Padding="0"
+                                                      HorizontalContentAlignment="Center"
+                                                      VerticalContentAlignment="Center"
+                                                      IsChecked="{Binding IsVisible}">
+                                            <TextBlock Text="{Binding IsVisible, Converter={StaticResource BoolToEyeGlyph}}"
+                                                       Opacity="{Binding IsVisible, Converter={StaticResource BoolToOpacity}}"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"
+                                                       TextAlignment="Center" />
+                                        </ToggleButton>
+
+                                        <!-- Превью -->
+                                        <Border Grid.Column="2"
+                                                Width="44"
+                                                Height="32"
+                                                Background="{Binding PreviewBrush}"
+                                                CornerRadius="6"
+                                                BorderThickness="1"
+                                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+
+                                        <!-- Имя -->
+                                        <TextBlock Grid.Column="3"
+                                                   Text="{Binding Name}"
+                                                   VerticalAlignment="Center" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Center canvas -->
+        <controls:CanvasViewport />
+    </DockPanel>
 </Window>
