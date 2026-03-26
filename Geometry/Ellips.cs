@@ -49,6 +49,8 @@ namespace Geometry
             if (eps < 0)
             throw new IncorrectInaccuracyParameter();
             Point dst = p - Center;
+            if (dst.X == 0 && dst.Y == 0)
+                return true;
             double x = dst.X * Math.Cos(-Angle) - dst.Y * Math.Sin(-Angle),
                 y = dst.X * Math.Sin(-Angle) + dst.Y * Math.Cos(-Angle);
             dst = new Point(x, y);
