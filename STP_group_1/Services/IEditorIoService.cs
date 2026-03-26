@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using Geometry;
 
 namespace STP_group_1.Services;
 
@@ -9,8 +11,7 @@ namespace STP_group_1.Services;
 public interface IEditorIoService
 {
     Task OpenFlatImageAsync(string path);       // PNG/JPG...
-    Task SaveNativeProjectAsync(string path);   // нативный формат со слоями
+    Task SaveNativeProjectAsync(string path, IEnumerable<IFigure> figures);   // нативный формат со слоями
     Task ExportFlatImageAsync(string path);     // PNG/JPG...
+    Task<IReadOnlyList<IFigure>> OpenNativeProjectAsync(string path);
 }
-
-

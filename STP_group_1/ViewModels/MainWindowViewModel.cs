@@ -562,7 +562,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
     public ReactiveCommand<Unit, Unit> OpenCommand { get; }
     public ReactiveCommand<Unit, Unit> SaveCommand { get; }
     public ReactiveCommand<Unit, Unit> ExportCommand { get; }
-
+    
     public ReactiveCommand<Unit, Unit> UndoCommand { get; }
     public ReactiveCommand<Unit, Unit> RedoCommand { get; }
 
@@ -641,14 +641,31 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         if (!await ConfirmLoseChangesIfDirtyAsync())
             return;
 
-        var path = await _dialogs.PickOpenFileAsync(new[] { ".png", ".jpg", ".jpeg" });
+        var path = await _dialogs.PickOpenFileAsync(new[] { ".graphify", ".json" });
         if (path is null)
             return;
 
-        await _io.OpenFlatImageAsync(path);
+        var figures = await _io.OpenNativeProjectAsync(path);
+        if (figures.Count == 0)
+            return;
+
+        var layer = new LayerViewModel
+        {
+            Name = $"Импортированный слой {Layers.Count + 1}",
+            PreviewBrush = Brushes.LightBlue
+        };
+
+        AttachLayer(layer);
+        Layers.Add(layer);
+        SelectedLayer = layer;
+
+        foreach (var figure in figures)
+        {
+            layer.Figures.Add(figure);
+        }
 
         CurrentProjectPath = path;
-        IsDirty = false;
+        IsDirty = true;
     }
 
     private async Task Save()
@@ -662,7 +679,8 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
             CurrentProjectPath = path;
         }
 
-        await _io.SaveNativeProjectAsync(path);
+        var allFigures = Layers.SelectMany(layer => layer.Figures);
+        await _io.SaveNativeProjectAsync(path, allFigures);
         IsDirty = false;
     }
 
