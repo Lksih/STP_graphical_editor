@@ -37,17 +37,3 @@ internal sealed class ColorDto
     public byte B { get; init; }
     public byte A { get; init; } = 255;
 }
-
-public class ExtendedGraphicProperties : IFigureGraphicProperties
-{
-    public Color Color { get; }
-    public double Thickness { get; }
-    public Color? FillColor { get; }
-
-    public ExtendedGraphicProperties(Color strokeColor, double thickness, Color? fillColor = null)
-    {
-        Color = strokeColor;
-        Thickness = thickness;
-        FillColor = fillColor;
-    }
-}

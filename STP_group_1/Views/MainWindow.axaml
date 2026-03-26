@@ -78,7 +78,9 @@
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="Файл">
                 <MenuItem Header="Создать…" Command="{Binding NewCommand}" />
+                <Separator/>
                 <MenuItem Header="Открыть…" Command="{Binding OpenCommand}" />
+                <MenuItem Header="Импорт из SVG" Command="{Binding ImportCommand}" />
                 <Separator/>
                 <MenuItem Header="Сохранить" Command="{Binding SaveCommand}" />
                 <MenuItem Header="Экспорт в SVG" Command="{Binding ExportCommand}" />

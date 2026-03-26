@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Reflection;
 using System.Text;
 using System.Xml;
+using static System.Net.Mime.MediaTypeNames;
 using AvColor = Avalonia.Media.Color;
 using Point = Geometry.Point;
 using SdColor = System.Drawing.Color;
@@ -258,9 +259,9 @@ namespace InputOutput
                     .ToString("0.###", CultureInfo.InvariantCulture));
             }
 
-            // Fill — проверяем, не Extended ли стиль
-            if (style is ExtendedGraphicProperties ext && ext.FillColor is { } fill)
+            if (style.IsFilled)
             {
+                var fill = style.FillColor;
                 el.SetAttribute("fill", ColorToHex(fill));
                 if (fill.A < 255)
                 {
@@ -315,9 +316,8 @@ namespace InputOutput
                 }
             }
 
-            // Если есть fill — возвращаем расширенный, иначе обычный
             if (fillColor != null)
-                return new ExtendedGraphicProperties(strokeColor, thickness, fillColor);
+                return new FigureGraphicProperties(strokeColor, thickness, true, fillColor);
 
             return new FigureGraphicProperties(strokeColor, thickness);
         }

@@ -20,6 +20,11 @@ public sealed class StubEditorIoService : IEditorIoService
         return Task.CompletedTask;
     }
 
+    public (IReadOnlyList<IFigure> Figures, Dictionary<IFigure, IFigureGraphicProperties> Styles) ImportSVG(string filePath)
+    {
+        return SVGConverter.Load(filePath);
+    }
+
     public async Task<(IReadOnlyList<IFigure> Figures, Dictionary<IFigure, IFigureGraphicProperties> Styles)> OpenNativeProjectAsync(string path)
     {
         return await FigureJsonIo.LoadFiguresAsync(path);

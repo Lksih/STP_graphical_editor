@@ -18,6 +18,7 @@ using System.Reactive.Linq;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Geometry.Graphic;
+using InputOutput;
 
 namespace STP_group_1.ViewModels;
 
@@ -184,6 +185,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         OpenCommand = ReactiveCommand.CreateFromTask(Open);
         SaveCommand = ReactiveCommand.CreateFromTask(Save);
         ExportCommand = ReactiveCommand.CreateFromTask(Export);
+        ImportCommand = ReactiveCommand.CreateFromTask(Import);
 
         UndoCommand = ReactiveCommand.Create(
             () => _undoRedoManager.Undo(),
@@ -567,6 +569,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
     public ReactiveCommand<Unit, Unit> OpenCommand { get; }
     public ReactiveCommand<Unit, Unit> SaveCommand { get; }
     public ReactiveCommand<Unit, Unit> ExportCommand { get; }
+    public ReactiveCommand<Unit, Unit> ImportCommand { get; }
     
     public ReactiveCommand<Unit, Unit> UndoCommand { get; }
     public ReactiveCommand<Unit, Unit> RedoCommand { get; }
@@ -694,9 +697,42 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         IsDirty = false;
     }
 
+    private async Task Import()
+    {
+        if (!await ConfirmLoseChangesIfDirtyAsync())
+            return;
+
+        var path = await _dialogs.PickOpenFileAsync(new[] { ".svg" });
+        if (path is null)
+            return;
+
+        var (figures, figuresGraphicProperties) = _io.ImportSVG(path);
+        if (figures.Count == 0)
+            return;
+
+        var layer = new LayerViewModel
+        {
+            Name = $"Импортированный слой {Layers.Count + 1}",
+            PreviewBrush = Brushes.LightBlue
+        };
+
+        AttachLayer(layer);
+        Layers.Add(layer);
+        SelectedLayer = layer;
+
+        foreach (var figure in figures)
+        {
+            layer.FiguresGraphicProperties[figure] = figuresGraphicProperties[figure];
+            layer.Figures.Add(figure);
+        }
+
+        CurrentProjectPath = path;
+        IsDirty = true;
+    }
+
     private async Task Export()
     {
-        var path = await _dialogs.PickSaveFileAsync(defaultExtension: ".png", suggestedFileName: "export.png");
+        var path = await _dialogs.PickSaveFileAsync(defaultExtension: ".svg", suggestedFileName: "export.svg");
         if (path is null)
             return;
 

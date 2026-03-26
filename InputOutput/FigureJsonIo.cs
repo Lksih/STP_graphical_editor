@@ -63,8 +63,9 @@ public static class FigureJsonIo
 
         // Пробуем достать fill
         ColorDto? fillDto = null;
-        if (style is ExtendedGraphicProperties ext && ext.FillColor is { } fill)
+        if (style.IsFilled)
         {
+            var fill = style.FillColor;
             fillDto = new ColorDto { R = fill.R, G = fill.G, B = fill.B, A = fill.A };
         }
 
@@ -153,7 +154,7 @@ public static class FigureJsonIo
             fillColor = AvColor.FromArgb(fc.A, fc.R, fc.G, fc.B);
 
         if (fillColor != null)
-            return new ExtendedGraphicProperties(strokeColor, thickness, fillColor);
+            return new FigureGraphicProperties(strokeColor, thickness, true, fillColor);
 
         return new FigureGraphicProperties(strokeColor, thickness);
     }
