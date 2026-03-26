@@ -40,9 +40,8 @@ public interface ICanvasInteractionHandler
 {
     bool HandleCanvasPointerPressed(Geometry.Point modelPoint, bool isLeftButtonPressed, bool isRightButtonPressed, KeyModifiers modifiers, double hitTolerance, IEnumerable<IFigure> figures, out bool shouldStartDragging);
     void HandleCanvasDragDelta(double dx, double dy);
+    public void HandleCanvasPointerReleased(double dx, double dy);
 }
-
-
 
 public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandler
 {
@@ -66,6 +65,8 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         get => _isColorPickerVisible;
         set => this.RaiseAndSetIfChanged(ref _isColorPickerVisible, value);
     }
+
+    private Geometry.Point PreviousCenter = new Geometry.Point(0, 0);
 
     public MainWindowViewModel(IUiDialogService dialogs, IEditorIoService io)
     {
@@ -536,10 +537,6 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
     public ReactiveCommand<Unit, Unit> DeleteSelectedFigureCommand { get; }
     public ReactiveCommand<Unit, Unit> RotateSelectedFigureCommand { get; }
 
-    public ReactiveCommand<Unit, Unit> AddLineCommand { get; }
-    public ReactiveCommand<Unit, Unit> AddPolygonCommand { get; }
-    public ReactiveCommand<Unit, Unit> AddEllipseCommand { get; }
-
     public ReactiveCommand<string?, Unit> SelectThemeCommand { get; }
 
     public ReactiveCommand<Unit, Unit> NewLayerCommand { get; }
@@ -810,7 +807,6 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         {
             if (CurrentLayerFigures.Contains(hit))
             {
-                //RemoveFigureFromCurrentLayer(hit);
                 DeleteSelectedFigure();
                 if (ReferenceEquals(SelectedFigure, hit))
                     SelectedFigure = null;
@@ -823,7 +819,11 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         SelectedFigure = hit;
 
         if (SelectedTool == ToolKind.Move)
+        {
             shouldStartDragging = true;
+            PreviousCenter.X = SelectedFigure.Center.X;
+            PreviousCenter.Y = SelectedFigure.Center.Y;
+        }
 
         return true;
     }
@@ -834,6 +834,22 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
             return;
 
         SelectedFigure.Move(dx, dy);
+
+        IsDirty = true;
+    }
+
+    public void HandleCanvasPointerReleased(double dx, double dy)
+    {
+        if (SelectedFigure is null || SelectedTool != ToolKind.Move)
+            return;
+
+        var newCenter = SelectedFigure.Center;
+        newCenter.X += dx;
+        newCenter.Y += dy;
+
+        var command = new MoveFigureCommand(SelectedFigure, PreviousCenter, newCenter);
+        ExecuteCommand(command);
+
         IsDirty = true;
     }
 

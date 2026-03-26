@@ -1,3 +1,4 @@
+
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -147,10 +148,7 @@ public sealed class GeometryCanvas : Control
             return;
 
         var pt = e.GetPosition(this);
-        var delta = pt - _dragStartPointer;
-
-        var dx = delta.X / Math.Max(ZoomFactor, 0.0001);
-        var dy = delta.Y / Math.Max(ZoomFactor, 0.0001);
+        var (dx, dy) = GetDxDyFromPointer(pt);
 
         vm.HandleCanvasDragDelta(dx, dy);
         _dragStartPointer = pt;
@@ -168,7 +166,26 @@ public sealed class GeometryCanvas : Control
             _isDragging = false;
             e.Pointer.Capture(null);
             e.Handled = true;
+
+            var vm = DataContext as ICanvasInteractionHandler;
+            if (vm is null)
+                return;
+
+            var pt = e.GetPosition(this);
+            var (dx, dy) = GetDxDyFromPointer(pt);
+
+            vm.HandleCanvasPointerReleased(dx, dy);
         }
+    }
+
+    private (double dx, double dy) GetDxDyFromPointer(Avalonia.Point pt)
+    {
+        var delta = pt - _dragStartPointer;
+
+        var dx = delta.X / Math.Max(ZoomFactor, 0.0001);
+        var dy = delta.Y / Math.Max(ZoomFactor, 0.0001);
+
+        return (dx, dy);
     }
 
     public override void Render(DrawingContext context)

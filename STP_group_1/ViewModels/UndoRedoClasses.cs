@@ -160,26 +160,28 @@ namespace STP_group_1.ViewModels
     public class MoveFigureCommand : IUndoRedoCommand
     {
         private readonly IFigure _figure;
-        private readonly double _dx;
-        private readonly double _dy;
+        private readonly Point _previousCenter;
+        private readonly Point _newCenter;
 
-        public MoveFigureCommand(IFigure figure, double dx, double dy)
+        public MoveFigureCommand(IFigure figure, Point previousCenter, Point newCenter)
         {
             _figure = figure;
-            _dx = dx;
-            _dy = dy;
+            _previousCenter = new Point(previousCenter.X, previousCenter.Y);
+            _newCenter = new Point(newCenter.X, newCenter.Y);
         }
 
         public string Description => "Переместить фигуру";
 
         public void Execute()
         {
-            _figure.Move(_dx, _dy);
+            var deltas = _newCenter - _figure.Center;
+            _figure.Move(deltas.X, deltas.Y);
         }
 
         public void Undo()
         {
-            _figure.Move(-_dx, -_dy);
+            var deltas = _previousCenter - _figure.Center;
+            _figure.Move(deltas.X, deltas.Y);
         }
     }
 
