@@ -203,7 +203,6 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         ZoomInCommand = ReactiveCommand.Create(ZoomIn);
         ZoomOutCommand = ReactiveCommand.Create(ZoomOut);
 
-        DeleteSelectedFigureCommand = ReactiveCommand.Create(DeleteSelectedFigure);
         RotateSelectedFigureCommand = ReactiveCommand.Create(RotateSelectedFigure);
 
         SelectThemeCommand = ReactiveCommand.Create<string?>(SelectTheme);
@@ -573,7 +572,6 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
     public ReactiveCommand<Unit, Unit> ZoomInCommand { get; }
     public ReactiveCommand<Unit, Unit> ZoomOutCommand { get; }
 
-    public ReactiveCommand<Unit, Unit> DeleteSelectedFigureCommand { get; }
     public ReactiveCommand<Unit, Unit> RotateSelectedFigureCommand { get; }
 
     public ReactiveCommand<string?, Unit> SelectThemeCommand { get; }
@@ -707,15 +705,11 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
     private void ZoomOut() => ZoomPercent = Clamp(ZoomPercent - 10, 10, 800);
 
 
-    private void DeleteSelectedFigure()
+    private void DeleteFigure(IFigure figure)
     {
-        if (SelectedFigure is null)
-            return;
-
-        var command = new DeleteFigureCommand(CurrentLayerFigures, CurrentLayerFiguresGraphicProperties, SelectedFigure);
+        var command = new DeleteFigureCommand(CurrentLayerFigures, CurrentLayerFiguresGraphicProperties, figure);
         ExecuteCommand(command);
 
-        SelectedFigure = null;
         IsDirty = true;
     }
 
@@ -935,7 +929,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         {
             if (CurrentLayerFigures.Contains(hit))
             {
-                DeleteSelectedFigure();
+                DeleteFigure(hit);
                 if (ReferenceEquals(SelectedFigure, hit))
                     SelectedFigure = null;
                 IsDirty = true;
