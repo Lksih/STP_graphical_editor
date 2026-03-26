@@ -13,17 +13,17 @@ public static class FigureJsonIo
 
     private static readonly Type EllipsTypeInfo = typeof(Ellipse);
 
-    public static void SaveFigures(IEnumerable<IFigure> figures, string filePath)
+    public static async Task SaveFiguresAsync(IEnumerable<IFigure> figures, string filePath)
     {
         var dtos = figures.Select(ToDto).ToList();
         string json = JsonConvert.SerializeObject(dtos, Formatting.Indented);
 
-        File.WriteAllText(filePath, json);
+        await File.WriteAllTextAsync(filePath, json);
     }
 
-    public static IReadOnlyList<IFigure> LoadFigures(string filePath)
+    public static async Task<IReadOnlyList<IFigure>> LoadFiguresAsync(string filePath)
     {
-        string json = File.ReadAllText(filePath);
+        string json = await File.ReadAllTextAsync(filePath);
         List<FigureDto>? dtos = JsonConvert.DeserializeObject<List<FigureDto>>(json);
 
         if (dtos is null)
