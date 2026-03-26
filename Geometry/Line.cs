@@ -5,14 +5,14 @@ namespace Geometry
 {
     public class Line : IFigure
     {
-        public Point Center => (VertArray[0] + VertArray[1]) * 0.5;
+        public Point Center {get; private set;}
         public ReadOnlySpan<Point> Vertex => VertArray; //Линия определяется этим полем
         private Point[] VertArray;
 
         public Line(Point a, Point b) //Но фактически для вызова класса нужно два экземпляра класса Point
         {
-            VertArray = new Point[2] { a, b };
-
+            VertArray = [a, b];
+            Center = (a + b) / 2;
         }
         public void Scale(double dx, double dy)
         {
@@ -39,9 +39,10 @@ namespace Geometry
         {
             for (int i = 0; i < VertArray.Length; i++)
             {
-                double x = VertArray[i].X * Math.Cos(angle) - VertArray[i].Y * Math.Sin(angle),
-                y = VertArray[i].X * Math.Sin(angle) + VertArray[i].Y * Math.Cos(angle);
-                VertArray[i] = new Point(x, y);
+                Point dst = VertArray[i] - Center;
+                double x = dst.X * Math.Cos(angle) - dst.Y * Math.Sin(angle),
+                y = dst.X * Math.Sin(angle) + dst.Y * Math.Cos(angle);
+                VertArray[i] = Center + new Point(x, y);
             }
         }
         public void Move(double dx, double dy)
@@ -55,6 +56,7 @@ namespace Geometry
             if (NewVertex.Length != 2)
             throw new IncorrectVertexSpan("Линия должна задаваться 2-мя точками");
             VertArray = NewVertex.ToArray();
+            Center = (Vertex[0] + Vertex[1]) / 2;
         }
         public IEnumerable<IDrawFigure> Draw() => throw new NotImplementedException();
         public bool IsIn(Point p, double eps)
@@ -75,9 +77,7 @@ namespace Geometry
             if (cs1 < 0 || cs2 < 0)
                 return false;
             
-            double p_geron = (normp1 + normp2 + norm12) / 2,
-            s = Math.Sqrt(p_geron * (p_geron - norm12)*(p_geron - normp1) * (p_geron - normp2)),
-            h = 2 * s / norm12;
+            double h = Math.Abs(p.X * (Vertex[0].Y - Vertex[1].Y) + Vertex[0].X * (Vertex[1].Y - p.Y) + Vertex[1].X * (p.Y - Vertex[0].Y)) / norm12;
             return h <= eps;
             
         }

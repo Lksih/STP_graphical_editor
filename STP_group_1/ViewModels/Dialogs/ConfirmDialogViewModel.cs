@@ -3,7 +3,7 @@ using System.Reactive;
 using ReactiveUI;
 using STP_group_1.ViewModels;
 
-namespace STP_group_1.Views.Dialogs;
+namespace STP_group_1.ViewModels.Dialogs;
 
 public sealed class ConfirmDialogViewModel : ViewModelBase
 {
@@ -22,3 +22,4 @@ public sealed class ConfirmDialogViewModel : ViewModelBase
 
     public event Action<bool>? CloseRequested;
 }
+

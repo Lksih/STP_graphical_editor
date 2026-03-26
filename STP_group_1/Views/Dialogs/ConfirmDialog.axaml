@@ -1,6 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vm="using:STP_group_1.Views.Dialogs"
+        xmlns:vm="using:STP_group_1.ViewModels.Dialogs"
         x:Class="STP_group_1.Views.Dialogs.ConfirmDialog"
         x:DataType="vm:ConfirmDialogViewModel"
         Width="420" Height="160"

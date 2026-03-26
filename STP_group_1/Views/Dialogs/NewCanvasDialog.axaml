@@ -1,6 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vm="using:STP_group_1.Views.Dialogs"
+        xmlns:vm="using:STP_group_1.ViewModels.Dialogs"
         x:Class="STP_group_1.Views.Dialogs.NewCanvasDialog"
         x:DataType="vm:NewCanvasDialogViewModel"
         Width="460" Height="240"

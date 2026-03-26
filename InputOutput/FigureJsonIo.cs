@@ -9,21 +9,21 @@ public static class FigureJsonIo
     private const string CurveType = "Curve";
     private const string PolygonType = "Polygon";
     private const string CurvedPolygonType = "CurvedPolygon";
-    private const string EllipsType = "Ellips";
+    private const string EllipsType = "Ellipse";
 
-    private static readonly Type EllipsTypeInfo = typeof(Ellips);
+    private static readonly Type EllipsTypeInfo = typeof(Ellipse);
 
-    public static void SaveFigures(IEnumerable<IFigure> figures, string filePath)
+    public static async Task SaveFiguresAsync(IEnumerable<IFigure> figures, string filePath)
     {
         var dtos = figures.Select(ToDto).ToList();
         string json = JsonConvert.SerializeObject(dtos, Formatting.Indented);
 
-        File.WriteAllText(filePath, json);
+        await File.WriteAllTextAsync(filePath, json);
     }
 
-    public static IReadOnlyList<IFigure> LoadFigures(string filePath)
+    public static async Task<IReadOnlyList<IFigure>> LoadFiguresAsync(string filePath)
     {
-        string json = File.ReadAllText(filePath);
+        string json = await File.ReadAllTextAsync(filePath);
         List<FigureDto>? dtos = JsonConvert.DeserializeObject<List<FigureDto>>(json);
 
         if (dtos is null)
@@ -58,13 +58,13 @@ public static class FigureJsonIo
                 Type = CurvedPolygonType,
                 Points = curvedPolygon.Vertex.ToArray().Select(PointDto.FromGeometryPoint).ToList()
             },
-            Ellips ellips => new FigureDto
+            Ellipse ellipse => new FigureDto
             {
                 Type = EllipsType,
-                Center = PointDto.FromGeometryPoint(ellips.Center),
-                Rx = ReadEllipsField(ellips, "Rx"),
-                Ry = ReadEllipsField(ellips, "Ry"),
-                Angle = ReadEllipsField(ellips, "Angle")
+                Center = PointDto.FromGeometryPoint(ellipse.Center),
+                Rx = ReadEllipsField(ellipse, "Rx"),
+                Ry = ReadEllipsField(ellipse, "Ry"),
+                Angle = ReadEllipsField(ellipse, "Angle")
             },
             _ => throw new NotSupportedException($"Figure type '{figure.GetType().Name}' is not supported.")
         };
@@ -108,9 +108,9 @@ public static class FigureJsonIo
     private static Point[] RequireCurvedPolygonPoints(FigureDto dto)
     {
         var points = dto.Points?.Select(p => p.ToGeometryPoint()).ToArray();
-        if (points is null || points.Length < 6 || points.Length % 3 != 0)
+        if (points is null || points.Length < 4 || points.Length % 2 != 0)
         {
-            throw new InvalidDataException("Figure 'CurvedPolygon' must contain at least 6 points and the points count must be divisible by 3.");
+            throw new InvalidDataException("Figure 'CurvedPolygon' must contain at least 4 points and the points count must be divisible by 2.");
         }
 
         return points;
@@ -120,26 +120,26 @@ public static class FigureJsonIo
     {
         if (dto.Center is null || dto.Rx is null || dto.Ry is null)
         {
-            throw new InvalidDataException("Figure 'Ellips' must contain center, rx and ry.");
+            throw new InvalidDataException("Figure 'Ellipse' must contain center, rx and ry.");
         }
 
-        var ellips = new Ellips(dto.Center.ToGeometryPoint(), dto.Rx.Value, dto.Ry.Value);
+        var ellipse = new Ellipse(dto.Center.ToGeometryPoint(), dto.Rx.Value, dto.Ry.Value);
         if (dto.Angle is not null && dto.Angle.Value != 0)
         {
-            ellips.Rotate(dto.Angle.Value);
+            ellipse.Rotate(dto.Angle.Value);
         }
 
-        return ellips;
+        return ellipse;
     }
 
-    private static double ReadEllipsField(Ellips ellips, string fieldName)
+    private static double ReadEllipsField(Ellipse ellipse, string fieldName)
     {
         var field = EllipsTypeInfo.GetField(fieldName, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         if (field is null || field.FieldType != typeof(double))
         {
-            throw new MissingFieldException(nameof(Ellips), fieldName);
+            throw new MissingFieldException(nameof(Ellipse), fieldName);
         }
 
-        return (double)field.GetValue(ellips)!;
+        return (double)field.GetValue(ellipse)!;
     }
 }

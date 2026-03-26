@@ -1,16 +1,17 @@
-﻿using System.Drawing.Imaging;
+﻿using Geometry;
+using Geometry.Graphic;
+using Svg;
+using System.Drawing.Imaging;
 using System.Globalization;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
 using System.Xml;
-using Svg;
-using Geometry;
-using UI.Models; // Здесь лежит интерфейс IFigureGraphicProperties
 using AvColor = Avalonia.Media.Color;
-using SdColor = System.Drawing.Color;
 using Point = Geometry.Point;
+using SdColor = System.Drawing.Color;
 
-namespace Paint_2._0.IO
+namespace InputOutput
 {
     /// <summary>
     /// Реестр сериализаторов для ЧИСТОЙ геометрии.
@@ -43,18 +44,8 @@ namespace Paint_2._0.IO
             _tagMap.GetValueOrDefault(tagName);
     }
 
-    public static class IO
+    public static class SVGConverter
     {
-        public static List<string> FileFormats { get; set; } = ["svg", "jpeg", "png"];
-
-        public static string MakeFileFilter()
-        {
-            var sb = new StringBuilder();
-            foreach (var format in FileFormats)
-                sb.Append($"{format.ToUpper()}|*.{format.ToLower()}|");
-            return sb.ToString().TrimEnd('|');
-        }
-
         /// <summary>
         /// СОХРАНЕНИЕ: Принимает геометрию и словарь стилей.
         /// </summary>
@@ -145,7 +136,7 @@ namespace Paint_2._0.IO
                     // Достаем стиль из словаря, если его нет - берем дефолтный
                     if (!styles.TryGetValue(fig, out var style))
                     {
-                        style = new LoadedStyle(AvColor.FromRgb(0, 0, 0), 1.0); // Default style
+                        style = new FigureGraphicProperties(AvColor.FromRgb(0, 0, 0), 1.0); // Default style
                     }
 
                     StyleHelper.WriteStyleToXml(xmlEl, style);
@@ -176,27 +167,12 @@ namespace Paint_2._0.IO
         }
     }
 
-    #region Helpers & Structs
-
     public interface IFigureSerializer
     {
         string SvgTagName { get; }
         Type FigureType { get; }
         XmlElement ToXml(XmlDocument doc, IFigure figure);
         IFigure FromXml(XmlNode node);
-    }
-
-    // Простая реализация интерфейса для загрузки стилей
-    internal struct LoadedStyle : IFigureGraphicProperties
-    {
-        public AvColor Color { get; }
-        public double Thickness { get; }
-
-        public LoadedStyle(AvColor color, double thickness)
-        {
-            Color = color;
-            Thickness = thickness;
-        }
     }
 
     internal static class StyleHelper
@@ -239,13 +215,9 @@ namespace Paint_2._0.IO
             var color = strokeAttr != null ? ParseColor(strokeAttr) : AvColor.FromRgb(0, 0, 0);
             var thickness = widthAttr != null ? double.Parse(widthAttr, CultureInfo.InvariantCulture) : 1.0;
 
-            return new LoadedStyle(color, thickness);
+            return new FigureGraphicProperties(color, thickness);
         }
     }
-
-    #endregion
-
-    #region Serializers (Pure Geometry)
 
     public class LineSerializer : IFigureSerializer
     {
@@ -347,9 +319,6 @@ namespace Paint_2._0.IO
             return ellipse;
         }
     }
-
-    // CurveSerializer и CurvedPolygonSerializer остаются такими же (они уже работают с геометрией)
-    // Я продублирую CurveSerializer для целостности кода
     public class CurveSerializer : IFigureSerializer
     {
         public string SvgTagName => "path";
@@ -409,6 +378,4 @@ namespace Paint_2._0.IO
             return new CurvedPolygon(points.ToArray());
         }
     }
-
-    #endregion
 }

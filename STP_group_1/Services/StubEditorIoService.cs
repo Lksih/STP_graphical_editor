@@ -1,22 +1,27 @@
+using Geometry;
+using Geometry.Graphic;
+using InputOutput;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace STP_group_1.Services;
 
-/// <summary>
-/// Временная заглушка: чтобы UI уже был рабочим (меню/диалоги/команды),
-/// но реальная сериализация/десериализация остаётся за командой IO.
-/// </summary>
 public sealed class StubEditorIoService : IEditorIoService
 {
-    public Task OpenFlatImageAsync(string path)
-        => Task.CompletedTask;
+    public async Task SaveNativeProjectAsync(string path, IEnumerable<IFigure> figures)
+    {
+        await FigureJsonIo.SaveFiguresAsync(figures, path);
+    }
 
-    public Task SaveNativeProjectAsync(string path)
-        => Task.CompletedTask;
+    public Task ExportFlatImageAsync(string filePath, IEnumerable<IFigure> figures, Dictionary<IFigure, IFigureGraphicProperties> figuresGraphicProperties)
+    {
+        SVGConverter.Save(figures, figuresGraphicProperties, filePath, 500, 500);
+        return Task.CompletedTask;
+    }
 
-    public Task ExportFlatImageAsync(string path)
-        => Task.CompletedTask;
+    public async Task<IReadOnlyList<IFigure>> OpenNativeProjectAsync(string path)
+    {
+        return await FigureJsonIo.LoadFiguresAsync(path);
+    }
 }
-
-

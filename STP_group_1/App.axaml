@@ -4,6 +4,7 @@
              xmlns:vm="using:STP_group_1.ViewModels"
              xmlns:views="using:STP_group_1.Views"
              xmlns:dialogs="using:STP_group_1.Views.Dialogs"
+             xmlns:dialogvm="using:STP_group_1.ViewModels.Dialogs"
              RequestedThemeVariant="Default">
 
 	<Application.DataTemplates>
@@ -11,11 +12,11 @@
 			<views:MainWindow/>
 		</DataTemplate>
 
-		<DataTemplate DataType="{x:Type dialogs:ConfirmDialogViewModel}">
+		<DataTemplate DataType="{x:Type dialogvm:ConfirmDialogViewModel}">
 			<dialogs:ConfirmDialog/>
 		</DataTemplate>
 
-		<DataTemplate DataType="{x:Type dialogs:NewCanvasDialogViewModel}">
+		<DataTemplate DataType="{x:Type dialogvm:NewCanvasDialogViewModel}">
 			<dialogs:NewCanvasDialog/>
 		</DataTemplate>
 	</Application.DataTemplates>

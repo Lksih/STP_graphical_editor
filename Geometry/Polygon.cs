@@ -44,9 +44,10 @@ namespace Geometry
         {
             for (int i = 0; i < VertArray.Length; i++)
             {
-                double x = VertArray[i].X * Math.Cos(angle) - VertArray[i].Y * Math.Sin(angle),
-                y = VertArray[i].X * Math.Sin(angle) + VertArray[i].Y * Math.Cos(angle);
-                VertArray[i] = new Point(x, y);
+                Point dst = VertArray[i] - Center;
+                double x = dst.X * Math.Cos(angle) - dst.Y * Math.Sin(angle),
+                y = dst.X * Math.Sin(angle) + dst.Y * Math.Cos(angle);
+                VertArray[i] = Center + new Point(x, y);
             }
         }
         public void Move(double dx, double dy)
@@ -107,7 +108,7 @@ namespace Geometry
             else
             {
                 Point difpa, difpb, difba;
-                double normpa, normpb, normba, cs1, cs2, p_geron, s, h;
+                double normpa, normpb, normba, cs1, cs2, h;
                 for (int i = 0; i < Vertex.Length - 1; i++)
                 {
                     difpa = p - Vertex[i]; difpb = p - Vertex[i + 1];
@@ -123,9 +124,7 @@ namespace Geometry
                     if (cs1 < 0 || cs2 < 0)
                         continue;
             
-                    p_geron = (normpa + normpb + normba) / 2;
-                    s = Math.Sqrt(p_geron * (p_geron - normba)*(p_geron - normpa) * (p_geron - normpb));
-                    h = 2 * s / normba;
+                    h = Math.Abs(p.X * (Vertex[i].Y - Vertex[i+1].Y) + Vertex[i].X * (Vertex[i+1].Y - p.Y) + Vertex[i+1].X * (p.Y - Vertex[i].Y)) / normba;
                     if (h <= eps)
                         return true;
                 }
@@ -143,9 +142,7 @@ namespace Geometry
                 if (cs1 < 0 || cs2 < 0)
                     return false;
             
-                p_geron = (normpa + normpb + normba) / 2;
-                s = Math.Sqrt(p_geron * (p_geron - normba)*(p_geron - normpa) * (p_geron - normpb));
-                h = 2 * s / normba;
+                h = Math.Abs(p.X * (Vertex[0].Y - Vertex[Vertex.Length - 1].Y) + Vertex[0].X * (Vertex[Vertex.Length - 1].Y - p.Y) + Vertex[Vertex.Length - 1].X * (p.Y - Vertex[0].Y)) / normba;
                 return h <= eps;
             }
         }

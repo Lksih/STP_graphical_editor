@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using STP_group_1.ViewModels.Dialogs;
 
 namespace STP_group_1.Views.Dialogs;
 

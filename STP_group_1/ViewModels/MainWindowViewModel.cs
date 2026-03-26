@@ -1,18 +1,23 @@
 using Avalonia;
+using Avalonia.Input;
 using Avalonia.Media;
+using Avalonia.Remote.Protocol.Input;
 using Avalonia.Styling;
+using Avalonia.VisualTree;
 using DynamicData;
 using Geometry;
 using ReactiveUI;
 using STP_group_1.Services;
+using STP_group_1.Views.Controls;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Globalization;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
-using UI.Models;
+using System.Xml.Linq;
+using Geometry.Graphic;
 
 namespace STP_group_1.ViewModels;
 
@@ -23,6 +28,9 @@ public enum ToolKind
     Line,
     Polygon,
     Ellipse,
+    Curve,
+    CurvedPolygon,
+    Fill
 }
 
 public enum ActiveColorTarget
@@ -31,13 +39,29 @@ public enum ActiveColorTarget
     Background
 }
 
+public interface ICanvasInteractionHandler
+{
+    bool HandleCanvasPointerPressed(Geometry.Point modelPoint, bool isLeftButtonPressed, bool isRightButtonPressed, KeyModifiers modifiers, double hitTolerance, IEnumerable<IFigure> figures, out bool shouldStartDragging);
+    void HandleCanvasDragDelta(double dx, double dy);
+    public void HandleCanvasPointerReleased(double dx, double dy);
+}
 
-
-public sealed class MainWindowViewModel : ViewModelBase
+public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandler
 {
     private readonly IUiDialogService _dialogs;
     private readonly IEditorIoService _io;
+    private readonly UndoRedoManager _undoRedoManager = new();
 
+    public string UndoDescription => _undoRedoManager.UndoDescription;
+    public string RedoDescription => _undoRedoManager.RedoDescription;
+
+    private void OnUndoRedoManagerPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(UndoRedoManager.UndoDescription))
+            this.RaisePropertyChanged(nameof(UndoDescription));
+        else if (e.PropertyName == nameof(UndoRedoManager.RedoDescription))
+            this.RaisePropertyChanged(nameof(RedoDescription));
+    }
     private bool _isColorPickerVisible;
     public bool IsColorPickerVisible
     {
@@ -45,13 +69,18 @@ public sealed class MainWindowViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _isColorPickerVisible, value);
     }
 
+    private Geometry.Point PreviousCenter = new Geometry.Point(0, 0);
+
     public MainWindowViewModel(IUiDialogService dialogs, IEditorIoService io)
     {
         _dialogs = dialogs;
         _io = io;
+        _undoRedoManager.PropertyChanged += OnUndoRedoManagerPropertyChanged;
 
         // Initial state
-        Layers.Add(new LayerViewModel { Name = "Background", PreviewBrush = Brushes.White });
+        var initialLayer = new LayerViewModel { Name = "Background", PreviewBrush = Brushes.White };
+        AttachLayer(initialLayer);
+        Layers.Add(initialLayer);
         SelectedLayer = Layers.FirstOrDefault();
         SelectedTool = ToolKind.Move;
         SelectedTheme = EditorTheme.System;
@@ -59,7 +88,18 @@ public sealed class MainWindowViewModel : ViewModelBase
         // ---- Derived properties (ReactiveUI way) ----
 
         this.WhenAnyValue(x => x.SelectedTool)
-            .Select(t => t.ToString())
+            .Select(t => t switch
+            {
+                ToolKind.Move => "Перемещение",
+                ToolKind.Eraser => "Ластик",
+                ToolKind.Line => "Линия",
+                ToolKind.Polygon => "Многоугольник",
+                ToolKind.Ellipse => "Эллипс",
+                ToolKind.Curve => "Кривая",
+                ToolKind.CurvedPolygon => "Кривой полином",
+                ToolKind.Fill => "Заливка",
+                _ => t.ToString()
+            })
             .ToProperty(this, x => x.SelectedToolDisplayName, out _selectedToolDisplayName);
 
         this.WhenAnyValue(x => x.SelectedTool)
@@ -82,13 +122,32 @@ public sealed class MainWindowViewModel : ViewModelBase
             .Select(t => t == ToolKind.Ellipse)
             .ToProperty(this, x => x.IsEllipseTool, out _isEllipseTool);
 
+        this.WhenAnyValue(x => x.SelectedTool)
+            .Select(t => t == ToolKind.Curve)
+            .ToProperty(this, x => x.IsCurveTool, out _isCurveTool);
+
+        this.WhenAnyValue(x => x.SelectedTool)
+            .Select(t => t == ToolKind.CurvedPolygon)
+            .ToProperty(this, x => x.IsCurvedPolygonTool, out _isCurvedPolygonTool);
+
+        this.WhenAnyValue(x => x.SelectedTool)
+            .Select(t => t == ToolKind.Fill)
+            .ToProperty(this, x => x.IsFillTool, out _isFillTool);
+
         this.WhenAnyValue(x => x.ZoomPercent)
             .Select(z => z / 100.0)
             .ToProperty(this, x => x.ZoomFactor, out _zoomFactor);
 
         this.WhenAnyValue(x => x.ZoomPercent)
-            .Select(z => $"{z}%")
-            .ToProperty(this, x => x.ZoomPercentText, out _zoomPercentText);
+            .Subscribe(z =>
+            {
+                var text = $"{z}%";
+                if (_zoomPercentText != text)
+                {
+                    _zoomPercentText = text;
+                    this.RaisePropertyChanged(nameof(ZoomPercentText));
+                }
+            });
 
         this.WhenAnyValue(x => x.CanvasWidth, x => x.ZoomFactor)
             .Select(t => t.Item1 * t.Item2)
@@ -115,6 +174,8 @@ public sealed class MainWindowViewModel : ViewModelBase
 
         RecentColors.CollectionChanged += (_, __) => this.RaisePropertyChanged(nameof(HasRecentColors));
 
+        Layers.CollectionChanged += (_, __) => RaiseLayersChanged();
+
         // ---- Commands ----
 
         SelectToolCommand = ReactiveCommand.Create<string?>(SelectTool);
@@ -123,21 +184,27 @@ public sealed class MainWindowViewModel : ViewModelBase
         OpenCommand = ReactiveCommand.CreateFromTask(Open);
         SaveCommand = ReactiveCommand.CreateFromTask(Save);
         ExportCommand = ReactiveCommand.CreateFromTask(Export);
-        ExitCommand = ReactiveCommand.CreateFromTask(Exit);
 
+        UndoCommand = ReactiveCommand.Create(
+            () => _undoRedoManager.Undo(),
+            this.WhenAnyValue(x => x._undoRedoManager.CanUndo));
 
-        UndoCommand = ReactiveCommand.Create(Undo);
-        RedoCommand = ReactiveCommand.Create(Redo);
+        RedoCommand = ReactiveCommand.Create(
+            () => _undoRedoManager.Redo(),
+            this.WhenAnyValue(x => x._undoRedoManager.CanRedo));
+
+        _undoRedoManager.CommandExecuted += (s, e) =>
+        {
+            IsDirty = true;
+            (App.Current?.ApplicationLifetime as Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)
+                ?.MainWindow?.GetVisualDescendants().OfType<GeometryCanvas>().FirstOrDefault()?.Refresh();
+        };
 
         ZoomInCommand = ReactiveCommand.Create(ZoomIn);
         ZoomOutCommand = ReactiveCommand.Create(ZoomOut);
 
         DeleteSelectedFigureCommand = ReactiveCommand.Create(DeleteSelectedFigure);
         RotateSelectedFigureCommand = ReactiveCommand.Create(RotateSelectedFigure);
-
-        AddLineCommand = ReactiveCommand.Create(AddLine);
-        AddPolygonCommand = ReactiveCommand.Create(AddPolygon);
-        AddEllipseCommand = ReactiveCommand.Create(AddEllipse);
 
         SelectThemeCommand = ReactiveCommand.Create<string?>(SelectTheme);
 
@@ -153,6 +220,11 @@ public sealed class MainWindowViewModel : ViewModelBase
         ApplyRecentColorCommand = ReactiveCommand.Create<object?>(ApplyRecentColor);
 
         InitializeDemoFigures();
+    }
+
+    public void ExecuteCommand(IUndoRedoCommand command)
+    {
+        _undoRedoManager.ExecuteCommand(command);
     }
 
     // ---------- Document state ----------
@@ -220,6 +292,17 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     private readonly ObservableAsPropertyHelper<bool> _isEllipseTool;
     public bool IsEllipseTool => _isEllipseTool.Value;
+
+    private readonly ObservableAsPropertyHelper<bool> _isCurveTool;
+    public bool IsCurveTool => _isCurveTool.Value;
+
+    private readonly ObservableAsPropertyHelper<bool> _isCurvedPolygonTool;
+    public bool IsCurvedPolygonTool => _isCurvedPolygonTool.Value;
+
+    private readonly ObservableAsPropertyHelper<bool> _isFillTool;
+    public bool IsFillTool => _isFillTool.Value;
+
+
     public bool IsForegroundActive => ActiveColorTarget == ActiveColorTarget.Foreground;
     public bool IsCanvasBackgroundActive => ActiveColorTarget == ActiveColorTarget.Background;
 
@@ -265,6 +348,7 @@ public sealed class MainWindowViewModel : ViewModelBase
             this.RaisePropertyChanged(nameof(IsCanvasBackgroundActive));
         }
     }
+
 
     private void ApplyRecentColor(object? value)
     {
@@ -318,6 +402,8 @@ public sealed class MainWindowViewModel : ViewModelBase
     }
 
     public ObservableCollection<Color> RecentColors { get; } = new();
+    public ObservableCollection<IFigure> VisibleFigures { get; } = new();
+    public Dictionary<IFigure, IFigureGraphicProperties> VisibleFiguresGraphicProperties { get; } = new();
 
     public bool HasRecentColors => RecentColors.Count > 0;
 
@@ -339,8 +425,26 @@ public sealed class MainWindowViewModel : ViewModelBase
     private readonly ObservableAsPropertyHelper<double> _canvasHeightZoomed;
     public double CanvasHeightZoomed => _canvasHeightZoomed.Value;
 
-    private readonly ObservableAsPropertyHelper<string> _zoomPercentText;
-    public string ZoomPercentText => _zoomPercentText.Value;
+    private string _zoomPercentText = "100%";
+    public string ZoomPercentText
+    {
+        get => _zoomPercentText;
+        set
+        {
+            if (_zoomPercentText == value)
+                return;
+
+            this.RaiseAndSetIfChanged(ref _zoomPercentText, value);
+
+            var text = value?.Trim() ?? string.Empty;
+            text = text.Replace("%", "").Trim();
+
+            if (int.TryParse(text, out var parsed))
+            {
+                ZoomPercent = parsed;
+            }
+        }
+    }
 
     // ---------- Theme ----------
 
@@ -371,6 +475,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         };
     }
 
+
     // ---------- Layers ----------
 
     public ObservableCollection<LayerViewModel> Layers { get; } = new();
@@ -382,18 +487,63 @@ public sealed class MainWindowViewModel : ViewModelBase
         set
         {
             this.RaiseAndSetIfChanged(ref _selectedLayer, value);
-            this.RaisePropertyChanged(nameof(Figures));
+            this.RaisePropertyChanged(nameof(CurrentLayerFigures));
         }
     }
 
-    // ---------- Geometry figures (per-layer) ----------
+    private void RebuildVisibleFigures()
+    {
+        VisibleFigures.Clear();
+        VisibleFiguresGraphicProperties.Clear();
+
+        foreach (var layer in Layers.Where(l => l.IsVisible))
+        {
+            foreach (var figure in layer.Figures)
+            {
+                VisibleFigures.Add(figure);
+                if (layer.FiguresGraphicProperties.TryGetValue(figure, out var figureGraphicProperties))
+                    VisibleFiguresGraphicProperties[figure] = figureGraphicProperties;
+            }
+        }
+    }
+
+    private void RaiseLayersChanged()
+    {
+        RebuildVisibleFigures();
+
+        this.RaisePropertyChanged(nameof(CurrentLayerFigures));
+        this.RaisePropertyChanged(nameof(SelectedLayer));
+    }
+
+    private void AttachLayer(LayerViewModel layer)
+    {
+        layer.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(LayerViewModel.IsVisible))
+            {
+                if (!layer.IsVisible && SelectedFigure is not null && layer.Figures.Contains(SelectedFigure))
+                    SelectedFigure = null;
+
+                if (!layer.IsVisible && ReferenceEquals(SelectedLayer, layer))
+                    SelectedLayer = Layers.FirstOrDefault(l => l.IsVisible);
+
+                RaiseLayersChanged();
+            }
+        };
+
+        layer.Figures.CollectionChanged += (_, __) => RaiseLayersChanged();
+    }
+
+    // ---------- Geometry CurrentLayerFigures (per-layer) ----------
 
     private static readonly ObservableCollection<IFigure> EmptyFigures = new();
+    private static readonly Dictionary<IFigure, IFigureGraphicProperties> EmptyFiguresGraphicProperties = new();
 
     /// <summary>
     /// Фигуры активного слоя. Для невырбранного слоя возвращается пустая коллекция.
     /// </summary>
-    public ObservableCollection<IFigure> Figures => SelectedLayer?.Figures ?? EmptyFigures;
+    public ObservableCollection<IFigure> CurrentLayerFigures => SelectedLayer?.Figures ?? EmptyFigures;
+    public Dictionary<IFigure, IFigureGraphicProperties> CurrentLayerFiguresGraphicProperties => SelectedLayer?.FiguresGraphicProperties ?? EmptyFiguresGraphicProperties;
 
     private IFigure? _selectedFigure;
     public IFigure? SelectedFigure
@@ -401,6 +551,12 @@ public sealed class MainWindowViewModel : ViewModelBase
         get => _selectedFigure;
         set => this.RaiseAndSetIfChanged(ref _selectedFigure, value);
     }
+
+    private Geometry.Point? _lineStart;
+    private readonly List<Geometry.Point> _polygonPoints = new();
+    private Geometry.Point? _ellipseCenter;
+    private readonly List<Geometry.Point> _curvePoints = new();
+    private readonly List<Geometry.Point> _curvedPolygonPoints = new();
 
     // ---------- Commands (public for XAML bindings) ----------
 
@@ -410,22 +566,15 @@ public sealed class MainWindowViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> OpenCommand { get; }
     public ReactiveCommand<Unit, Unit> SaveCommand { get; }
     public ReactiveCommand<Unit, Unit> ExportCommand { get; }
-    public ReactiveCommand<Unit, Unit> ExitCommand { get; }
-
+    
     public ReactiveCommand<Unit, Unit> UndoCommand { get; }
     public ReactiveCommand<Unit, Unit> RedoCommand { get; }
 
     public ReactiveCommand<Unit, Unit> ZoomInCommand { get; }
     public ReactiveCommand<Unit, Unit> ZoomOutCommand { get; }
 
-    public ReactiveCommand<Unit, Unit> SwapColorsCommand { get; }
-
     public ReactiveCommand<Unit, Unit> DeleteSelectedFigureCommand { get; }
     public ReactiveCommand<Unit, Unit> RotateSelectedFigureCommand { get; }
-
-    public ReactiveCommand<Unit, Unit> AddLineCommand { get; }
-    public ReactiveCommand<Unit, Unit> AddPolygonCommand { get; }
-    public ReactiveCommand<Unit, Unit> AddEllipseCommand { get; }
 
     public ReactiveCommand<string?, Unit> SelectThemeCommand { get; }
 
@@ -442,7 +591,20 @@ public sealed class MainWindowViewModel : ViewModelBase
     private void SelectTool(string? tool)
     {
         if (Enum.TryParse<ToolKind>(tool, ignoreCase: true, out var parsed))
+        {
+            if (SelectedTool != parsed)
+            {
+                // сбрасываем наборы точек ввода при переключении режимов
+                // (чтобы случайно не создать фигуру из частично введенных данных).
+                _lineStart = null;
+                _polygonPoints.Clear();
+                _ellipseCenter = null;
+                _curvePoints.Clear();
+                _curvedPolygonPoints.Clear();
+            }
+
             SelectedTool = parsed;
+        }
     }
 
 
@@ -460,8 +622,18 @@ public sealed class MainWindowViewModel : ViewModelBase
         CanvasBackground = options.Value.Background;
 
         Layers.Clear();
-        Layers.Add(new LayerViewModel { Name = "Layer 1", PreviewBrush = new SolidColorBrush(CanvasBackground) });
-        SelectedLayer = Layers.FirstOrDefault();
+
+        var layer = new LayerViewModel
+        {
+            Name = "Layer 1",
+            PreviewBrush = new SolidColorBrush(CanvasBackground)
+        };
+
+        AttachLayer(layer);
+        Layers.Add(layer);
+        SelectedLayer = layer;
+
+        RaiseLayersChanged();
 
         CurrentProjectPath = null;
         IsDirty = false;
@@ -472,14 +644,31 @@ public sealed class MainWindowViewModel : ViewModelBase
         if (!await ConfirmLoseChangesIfDirtyAsync())
             return;
 
-        var path = await _dialogs.PickOpenFileAsync(new[] { ".png", ".jpg", ".jpeg" });
+        var path = await _dialogs.PickOpenFileAsync(new[] { ".graphify", ".json" });
         if (path is null)
             return;
 
-        await _io.OpenFlatImageAsync(path);
+        var figures = await _io.OpenNativeProjectAsync(path);
+        if (figures.Count == 0)
+            return;
+
+        var layer = new LayerViewModel
+        {
+            Name = $"Импортированный слой {Layers.Count + 1}",
+            PreviewBrush = Brushes.LightBlue
+        };
+
+        AttachLayer(layer);
+        Layers.Add(layer);
+        SelectedLayer = layer;
+
+        foreach (var figure in figures)
+        {
+            layer.Figures.Add(figure);
+        }
 
         CurrentProjectPath = path;
-        IsDirty = false;
+        IsDirty = true;
     }
 
     private async Task Save()
@@ -493,7 +682,8 @@ public sealed class MainWindowViewModel : ViewModelBase
             CurrentProjectPath = path;
         }
 
-        await _io.SaveNativeProjectAsync(path);
+        var allFigures = Layers.SelectMany(layer => layer.Figures);
+        await _io.SaveNativeProjectAsync(path, allFigures);
         IsDirty = false;
     }
 
@@ -503,28 +693,14 @@ public sealed class MainWindowViewModel : ViewModelBase
         if (path is null)
             return;
 
-        await _io.ExportFlatImageAsync(path);
-    }
-
-    private async Task Exit()
-    {
-        if (!await ConfirmLoseChangesIfDirtyAsync())
-            return;
-
-        _dialogs.RequestCloseMainWindow();
+        var allFigures = Layers.SelectMany(layer => layer.Figures);
+        var allProperties = Layers
+            .SelectMany(layer => layer.FiguresGraphicProperties)
+            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+        await _io.ExportFlatImageAsync(path, allFigures, allProperties);
     }
 
     public Task<bool> CanCloseAsync() => ConfirmLoseChangesIfDirtyAsync();
-
-    private void Undo()
-    {
-        // TODO: connect to real undo stack from application/core.
-    }
-
-    private void Redo()
-    {
-        // TODO: connect to real undo stack from application/core.
-    }
 
     private void ZoomIn() => ZoomPercent = Clamp(ZoomPercent + 10, 10, 800);
 
@@ -536,7 +712,9 @@ public sealed class MainWindowViewModel : ViewModelBase
         if (SelectedFigure is null)
             return;
 
-        Figures.Remove(SelectedFigure);
+        var command = new DeleteFigureCommand(CurrentLayerFigures, CurrentLayerFiguresGraphicProperties, SelectedFigure);
+        ExecuteCommand(command);
+
         SelectedFigure = null;
         IsDirty = true;
     }
@@ -550,54 +728,20 @@ public sealed class MainWindowViewModel : ViewModelBase
         const double stepDegrees = 15.0;
         var angle = Math.PI * stepDegrees / 180.0;
 
-        SelectedFigure.Rotate(angle);
+        var command = new RotateFigureCommand(SelectedFigure, angle);
+        ExecuteCommand(command);
+
         IsDirty = true;
     }
 
-    private void AddLine()
+    private void AddNewFigure(IFigure figure)
     {
-        var cx = CanvasWidth / 2.0;
-        var cy = CanvasHeight / 2.0;
+        var figureGraphicProperties = new FigureGraphicProperties(ForegroundColor, 2.0);
 
-        var a = new Geometry.Point(cx - 100, cy);
-        var b = new Geometry.Point(cx + 100, cy);
+        var command = new AddFigureCommand(CurrentLayerFigures, CurrentLayerFiguresGraphicProperties, figure, figureGraphicProperties);
+        ExecuteCommand(command);
 
-        var fig = new GraphicLine(a, b, ForegroundColor, 2.0);
-
-        Figures.Add(fig);
-        SelectedFigure = fig;
-        IsDirty = true;
-    }
-
-    private void AddPolygon()
-    {
-        var cx = CanvasWidth / 2.0;
-        var cy = CanvasHeight / 2.0;
-
-        var verts = new[]
-        {
-            new Geometry.Point(cx, cy - 80),
-            new Geometry.Point(cx + 80, cy + 40),
-            new Geometry.Point(cx, cy + 80),
-            new Geometry.Point(cx - 80, cy + 40),
-        };
-
-        var fig = new GraphicPolygon(verts, ForegroundColor, 2.0);
-
-        Figures.Add(fig);
-        SelectedFigure = fig;
-        IsDirty = true;
-    }
-
-    private void AddEllipse()
-    {
-        var cx = CanvasWidth / 2.0;
-        var cy = CanvasHeight / 2.0;
-
-        var fig = new GraphicEllipse(new Geometry.Point(cx, cy), 120, 80, ForegroundColor, 2.0);
-
-        Figures.Add(fig);
-        SelectedFigure = fig;
+        SelectedFigure = figure;
         IsDirty = true;
     }
 
@@ -609,8 +753,15 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     private void NewLayer()
     {
-        Layers.Add(new LayerViewModel { Name = $"Layer {Layers.Count + 1}", PreviewBrush = Brushes.LightGray });
-        SelectedLayer = Layers.LastOrDefault();
+        var layer = new LayerViewModel
+        {
+            Name = $"Layer {Layers.Count + 1}",
+            PreviewBrush = Brushes.LightGray
+        };
+
+        AttachLayer(layer);
+        Layers.Add(layer);
+        SelectedLayer = layer;
         IsDirty = true;
     }
 
@@ -643,26 +794,243 @@ public sealed class MainWindowViewModel : ViewModelBase
         IsDirty = true;
     }
 
+    public void MoveLayer(LayerViewModel draggedLayer, LayerViewModel? targetLayer)
+    {
+        var from = Layers.IndexOf(draggedLayer);
+        var to = targetLayer is null
+            ? Layers.Count - 1
+            : Layers.IndexOf(targetLayer);
+
+        MoveLayer(from, to);
+    }
+
+    public bool HandleCanvasPointerPressed(Geometry.Point modelPoint, bool isLeftButtonPressed, bool isRightButtonPressed, KeyModifiers modifiers, double hitTolerance, IEnumerable<IFigure> figures, out bool shouldStartDragging)
+    {
+        shouldStartDragging = false;
+
+        // Fill tool: click on a figure toggles its own fill state.
+        if (SelectedTool == ToolKind.Fill && isLeftButtonPressed)
+        {
+            var fillTarget = figures.Reverse().FirstOrDefault(f => f.IsIn(modelPoint, hitTolerance));
+            if (fillTarget is not null && (fillTarget is Polygon || fillTarget is CurvedPolygon || fillTarget is Ellipse))
+            {
+                ToggleFigureFill(fillTarget);
+                SelectedFigure = fillTarget;
+            }
+            return true; // prevent selection/dragging/move actions while fill tool is active
+        }
+
+        if (SelectedTool == ToolKind.Line || SelectedTool == ToolKind.Polygon || SelectedTool == ToolKind.Ellipse || SelectedTool == ToolKind.Curve || SelectedTool == ToolKind.CurvedPolygon)
+        {
+            if (SelectedTool == ToolKind.Line && isLeftButtonPressed)
+            {
+                if (_lineStart is null)
+                {
+                    _lineStart = modelPoint;
+                }
+                else
+                {
+                    AddNewFigure(new Line(_lineStart, modelPoint));
+                    _lineStart = null;
+                }
+
+                return true;
+            }
+
+            if (SelectedTool == ToolKind.Polygon)
+            {
+                if (isLeftButtonPressed)
+                {
+                    _polygonPoints.Add(modelPoint);
+                    return true;
+                }
+
+                if (isRightButtonPressed && _polygonPoints.Count >= 3)
+                {
+                    AddNewFigure(new Polygon(_polygonPoints.ToArray()));
+                    _polygonPoints.Clear();
+                    return true;
+                }
+            }
+
+            if (SelectedTool == ToolKind.Ellipse && isLeftButtonPressed)
+            {
+                if (_ellipseCenter is null)
+                {
+                    _ellipseCenter = modelPoint;
+                }
+                else
+                {
+                    var c = _ellipseCenter;
+                    var rx = Math.Abs(modelPoint.X - c.X);
+                    var ry = Math.Abs(modelPoint.Y - c.Y);
+                    if (rx < 1) rx = 1;
+                    if (ry < 1) ry = 1;
+
+                    if (modifiers.HasFlag(KeyModifiers.Shift))
+                        rx = ry = Math.Max(Math.Abs(rx), Math.Abs(ry));
+
+                    AddNewFigure(new Ellipse(c, rx, ry));
+                    _ellipseCenter = null;
+                }
+
+                return true;
+            }
+
+            if (SelectedTool == ToolKind.Curve)
+            {
+                if (isLeftButtonPressed)
+                {
+                    _curvePoints.Add(modelPoint);
+                    if (_curvePoints.Count == 3)
+                    {
+                        AddNewFigure(new Curve(_curvePoints.ToArray()));
+                        _curvePoints.Clear();
+                    }
+                    return true;
+                }
+
+                // отмена ввода кривой правой кнопкой
+                if (isRightButtonPressed)
+                {
+                    _curvePoints.Clear();
+                    return true;
+                }
+            }
+
+            if (SelectedTool == ToolKind.CurvedPolygon)
+            {
+                if (isLeftButtonPressed)
+                {
+                    _curvedPolygonPoints.Add(modelPoint);
+                    return true;
+                }
+
+                // завершение ввода правой кнопкой
+                if (isRightButtonPressed)
+                {
+                    var count = _curvedPolygonPoints.Count;
+                    if (count >= 4 && count % 2 == 0)
+                    {
+                        AddNewFigure(new CurvedPolygon(_curvedPolygonPoints.ToArray()));
+                        _curvedPolygonPoints.Clear();
+                        return true;
+                    }
+                }
+            }
+        }
+
+        if (!isLeftButtonPressed)
+            return false;
+
+        var hit = figures.Reverse().FirstOrDefault(f => f.IsIn(modelPoint, hitTolerance));
+
+        if (hit is null)
+        {
+            SelectedFigure = null;
+            return true;
+        }
+
+        if (SelectedTool == ToolKind.Eraser)
+        {
+            if (CurrentLayerFigures.Contains(hit))
+            {
+                DeleteSelectedFigure();
+                if (ReferenceEquals(SelectedFigure, hit))
+                    SelectedFigure = null;
+                IsDirty = true;
+            }
+
+            return true;
+        }
+
+        SelectedFigure = hit;
+
+        if (SelectedTool == ToolKind.Move)
+        {
+            shouldStartDragging = true;
+            PreviousCenter.X = SelectedFigure.Center.X;
+            PreviousCenter.Y = SelectedFigure.Center.Y;
+        }
+
+        return true;
+    }
+
+    public void HandleCanvasDragDelta(double dx, double dy)
+    {
+        if (SelectedFigure is null || SelectedTool != ToolKind.Move)
+            return;
+
+        SelectedFigure.Move(dx, dy);
+
+        IsDirty = true;
+    }
+
+    public void HandleCanvasPointerReleased(double dx, double dy)
+    {
+        if (SelectedFigure is null || SelectedTool != ToolKind.Move)
+            return;
+
+        var newCenter = SelectedFigure.Center;
+        newCenter.X += dx;
+        newCenter.Y += dy;
+
+        var command = new MoveFigureCommand(SelectedFigure, PreviousCenter, newCenter);
+        ExecuteCommand(command);
+
+        IsDirty = true;
+    }
+
     // ---------- Helpers ----------
+
+    private void ToggleFigureFill(IFigure figure)
+    {
+        // Update fill state per-figure (stored in the layer properties map).
+        var layer = Layers.FirstOrDefault(l => l.FiguresGraphicProperties.ContainsKey(figure));
+        if (layer is null)
+            return;
+
+        var oldProps = layer.FiguresGraphicProperties[figure];
+        var newIsFilled = !oldProps.IsFilled;
+        var newFillColor = newIsFilled ? ActiveColor : oldProps.FillColor;
+
+        var newProps = new FigureGraphicProperties(
+            oldProps.Color,
+            oldProps.Thickness,
+            isFilled: newIsFilled,
+            fillColor: newFillColor);
+
+        ExecuteCommand(new ToggleFillFigureCommand(
+            layer.FiguresGraphicProperties,
+            VisibleFiguresGraphicProperties,
+            figure,
+            oldProps,
+            newProps));
+    }
 
     private void InitializeDemoFigures()
     {
         // Заготовка на базе Geometry.IFigure
-        Figures.Add(new GraphicLine(new Geometry.Point(100, 120), new Geometry.Point(360, 180),
-            Colors.CornflowerBlue,
-            2.0
-        ));
+        var line = new Line(new Geometry.Point(100, 120), new Geometry.Point(360, 180));
+        AddFigureToCurrentLayer(line, new FigureGraphicProperties(Colors.CornflowerBlue, 2.0));
 
-        Figures.Add(new GraphicPolygon(new[]
+        var polygon = new Polygon(new[]
         {
             new Geometry.Point(420, 260),
             new Geometry.Point(540, 300),
             new Geometry.Point(520, 380),
             new Geometry.Point(430, 360),
-        },
-            Colors.OrangeRed,
-            2.0
-        ));
+        });
+        AddFigureToCurrentLayer(polygon, new FigureGraphicProperties(Colors.Yellow, 2.0));
+
+        var polygon2 = new Polygon(new[]
+        {
+            new Geometry.Point(470, 260),
+            new Geometry.Point(590, 300),
+            new Geometry.Point(570, 380),
+            new Geometry.Point(480, 360),
+        });
+        AddFigureToCurrentLayer(polygon2, new FigureGraphicProperties(Colors.Red, 2.0));
     }
 
     private async Task<bool> ConfirmLoseChangesIfDirtyAsync()
@@ -676,6 +1044,18 @@ public sealed class MainWindowViewModel : ViewModelBase
     }
 
     private static int Clamp(int v, int min, int max) => v < min ? min : (v > max ? max : v);
+
+    private void AddFigureToCurrentLayer(IFigure figure, IFigureGraphicProperties figureGraphicProperties)
+    {
+        CurrentLayerFiguresGraphicProperties[figure] = figureGraphicProperties;
+        CurrentLayerFigures.Add(figure);
+    }
+
+    private void RemoveFigureFromCurrentLayer(IFigure figure)
+    {
+        CurrentLayerFiguresGraphicProperties.Remove(figure);
+        CurrentLayerFigures.Remove(figure);
+    }
 
     private void PushRecentColor(Color color)
     {

@@ -1,7 +1,9 @@
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using Avalonia.Media;
 using Geometry;
 using ReactiveUI;
+using Geometry.Graphic;
 
 namespace STP_group_1.ViewModels;
 
@@ -32,4 +34,5 @@ public sealed class LayerViewModel : ViewModelBase
     /// Геометрические фигуры, принадлежащие этому слою.
     /// </summary>
     public ObservableCollection<IFigure> Figures { get; } = new();
+    public Dictionary<IFigure, IFigureGraphicProperties> FiguresGraphicProperties { get; } = new();
 }
