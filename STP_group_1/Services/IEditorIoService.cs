@@ -10,8 +10,7 @@ namespace STP_group_1.Services;
 /// </summary>
 public interface IEditorIoService
 {
-    Task OpenFlatImageAsync(string path);       // PNG/JPG...
-    Task SaveNativeProjectAsync(string path, IEnumerable<IFigure> figures);   // нативный формат со слоями
+    Task SaveNativeProjectAsync(string path, IEnumerable<IFigure> figures);
     Task ExportFlatImageAsync(string path);     // PNG/JPG...
     Task<IReadOnlyList<IFigure>> OpenNativeProjectAsync(string path);
 }
