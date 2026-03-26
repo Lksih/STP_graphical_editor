@@ -29,7 +29,8 @@ public enum ToolKind
     Polygon,
     Ellipse,
     Curve,
-    CurvedPolygon
+    CurvedPolygon,
+    Fill
 }
 
 public enum ActiveColorTarget
@@ -96,6 +97,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
                 ToolKind.Ellipse => "Эллипс",
                 ToolKind.Curve => "Кривая",
                 ToolKind.CurvedPolygon => "Кривой полином",
+                ToolKind.Fill => "Заливка",
                 _ => t.ToString()
             })
             .ToProperty(this, x => x.SelectedToolDisplayName, out _selectedToolDisplayName);
@@ -127,6 +129,10 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         this.WhenAnyValue(x => x.SelectedTool)
             .Select(t => t == ToolKind.CurvedPolygon)
             .ToProperty(this, x => x.IsCurvedPolygonTool, out _isCurvedPolygonTool);
+
+        this.WhenAnyValue(x => x.SelectedTool)
+            .Select(t => t == ToolKind.Fill)
+            .ToProperty(this, x => x.IsFillTool, out _isFillTool);
 
         this.WhenAnyValue(x => x.ZoomPercent)
             .Select(z => z / 100.0)
@@ -293,12 +299,10 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
     private readonly ObservableAsPropertyHelper<bool> _isCurvedPolygonTool;
     public bool IsCurvedPolygonTool => _isCurvedPolygonTool.Value;
 
-    private bool _isFillToolActive;
-    public bool IsFillToolActive
-    {
-        get => _isFillToolActive;
-        set => this.RaiseAndSetIfChanged(ref _isFillToolActive, value);
-    }
+    private readonly ObservableAsPropertyHelper<bool> _isFillTool;
+    public bool IsFillTool => _isFillTool.Value;
+
+
     public bool IsForegroundActive => ActiveColorTarget == ActiveColorTarget.Foreground;
     public bool IsCanvasBackgroundActive => ActiveColorTarget == ActiveColorTarget.Background;
 
@@ -597,7 +601,6 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
                 _ellipseCenter = null;
                 _curvePoints.Clear();
                 _curvedPolygonPoints.Clear();
-                IsFillToolActive = false; // Отключаем заливку при переключении на другой инструмент
             }
 
             SelectedTool = parsed;
@@ -802,7 +805,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         shouldStartDragging = false;
 
         // Fill tool: click on a figure toggles its own fill state.
-        if (IsFillToolActive && isLeftButtonPressed)
+        if (SelectedTool == ToolKind.Fill && isLeftButtonPressed)
         {
             var fillTarget = figures.Reverse().FirstOrDefault(f => f.IsIn(modelPoint, hitTolerance));
             if (fillTarget is not null && (fillTarget is Polygon || fillTarget is CurvedPolygon || fillTarget is Ellipse))
