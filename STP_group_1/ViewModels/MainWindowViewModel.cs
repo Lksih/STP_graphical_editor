@@ -204,6 +204,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         ZoomOutCommand = ReactiveCommand.Create(ZoomOut);
 
         RotateSelectedFigureCommand = ReactiveCommand.Create(RotateSelectedFigure);
+        IncreaseSelectedFigureCommand = ReactiveCommand.Create(IncreaseSelectedFigure);
 
         SelectThemeCommand = ReactiveCommand.Create<string?>(SelectTheme);
 
@@ -573,6 +574,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
     public ReactiveCommand<Unit, Unit> ZoomOutCommand { get; }
 
     public ReactiveCommand<Unit, Unit> RotateSelectedFigureCommand { get; }
+    public ReactiveCommand<Unit, Unit> IncreaseSelectedFigureCommand { get; }
 
     public ReactiveCommand<string?, Unit> SelectThemeCommand { get; }
 
@@ -723,6 +725,18 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         var angle = Math.PI * stepDegrees / 180.0;
 
         var command = new RotateFigureCommand(SelectedFigure, angle);
+        ExecuteCommand(command);
+
+        IsDirty = true;
+    }
+
+    private void IncreaseSelectedFigure()
+    {
+        if (SelectedFigure is null)
+            return;
+
+        // Увеличение на 1.1
+        var command = new RadialScaleFigureCommand(SelectedFigure, 1.1);
         ExecuteCommand(command);
 
         IsDirty = true;

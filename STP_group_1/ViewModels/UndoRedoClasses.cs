@@ -244,37 +244,27 @@ namespace STP_group_1.ViewModels
         }
     }
 
-    public class CompositeCommand : IUndoRedoCommand
+    public class RadialScaleFigureCommand : IUndoRedoCommand
     {
-        private readonly List<IUndoRedoCommand> _commands = new();
+        private readonly IFigure _figure;
+        private readonly double _dr;
 
-        public CompositeCommand(params IUndoRedoCommand[] commands)
+        public RadialScaleFigureCommand(IFigure figure, double dr)
         {
-            _commands.AddRange(commands);
+            _figure = figure;
+            _dr = dr;
         }
 
-        public CompositeCommand(IEnumerable<IUndoRedoCommand> commands)
-        {
-            _commands.AddRange(commands);
-        }
-
-        public string Description => "Составное действие";
+        public string Description => "Увеличить фигуру";
 
         public void Execute()
         {
-            foreach (var cmd in _commands)
-                cmd.Execute();
+            _figure.RadialScale(_dr);
         }
 
         public void Undo()
         {
-            for (int i = _commands.Count - 1; i >= 0; i--)
-                _commands[i].Undo();
-        }
-
-        public void AddCommand(IUndoRedoCommand command)
-        {
-            _commands.Add(command);
+            _figure.RadialScale(1 / _dr);
         }
     }
 

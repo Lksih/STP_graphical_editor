@@ -60,6 +60,7 @@
         <KeyBinding Gesture="E" Command="{Binding SelectToolCommand}" CommandParameter="Eraser" />
         <KeyBinding Gesture="V" Command="{Binding SelectToolCommand}" CommandParameter="Move" />
         <KeyBinding Gesture="R" Command="{Binding RotateSelectedFigureCommand}" />
+        <KeyBinding Gesture="+" Command="{Binding IncreaseSelectedFigureCommand}" />
         <KeyBinding Gesture="L" Command="{Binding SelectToolCommand}" CommandParameter="Line" />
         <KeyBinding Gesture="P" Command="{Binding SelectToolCommand}" CommandParameter="Polygon" />
         <KeyBinding Gesture="O" Command="{Binding SelectToolCommand}" CommandParameter="Ellipse" />
@@ -147,6 +148,16 @@
                                 ToolTip.Tip="Повернуть выделенную фигуру (R)"
                                 Command="{Binding RotateSelectedFigureCommand}">
                             <TextBlock Text="⟳"
+                                       FontSize="14"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"/>
+                        </Button>
+
+                        <Button Classes="ToolModeButton IncreaseActionButton"
+                                Margin="2"
+                                ToolTip.Tip="Увеличить выделенную фигуру (R)"
+                                Command="{Binding IncreaseSelectedFigureCommand}">
+                            <TextBlock Text="+"
                                        FontSize="14"
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Center"/>
