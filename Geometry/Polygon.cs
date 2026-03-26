@@ -67,7 +67,6 @@ namespace Geometry
                 Center += vert;
             Center *= 1.0 / VertArray.Length;
         }
-        public IEnumerable<IDrawFigure> Draw() => throw new NotImplementedException();
         public bool IsIn(Point p, double eps)
         {
             if (eps < 0)

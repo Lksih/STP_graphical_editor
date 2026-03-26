@@ -58,7 +58,6 @@ namespace Geometry
             VertArray = NewVertex.ToArray();
             Center = (Vertex[0] + Vertex[1]) / 2;
         }
-        public IEnumerable<IDrawFigure> Draw() => throw new NotImplementedException();
         public bool IsIn(Point p, double eps)
         {
             if (eps < 0)
