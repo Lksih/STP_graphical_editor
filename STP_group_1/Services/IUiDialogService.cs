@@ -11,10 +11,8 @@ public interface IUiDialogService
 
     Task<NewCanvasOptions?> ShowNewCanvasDialogAsync(double currentWidth, double currentHeight, Color currentBackground);
 
-    /// <summary>Returns absolute path or null if cancelled.</summary>
     Task<string?> PickOpenFileAsync(string[] extensions);
 
-    /// <summary>Returns absolute path or null if cancelled.</summary>
     Task<string?> PickSaveFileAsync(string defaultExtension, string suggestedFileName);
 }
 

@@ -1,7 +1,6 @@
 using Avalonia;
 using Avalonia.Input;
 using Avalonia.Media;
-using Avalonia.Remote.Protocol.Input;
 using Avalonia.Styling;
 using Avalonia.VisualTree;
 using DynamicData;
@@ -16,9 +15,7 @@ using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
-using System.Xml.Linq;
 using Geometry.Graphic;
-using InputOutput;
 
 namespace STP_group_1.ViewModels;
 
@@ -78,15 +75,12 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         _io = io;
         _undoRedoManager.PropertyChanged += OnUndoRedoManagerPropertyChanged;
 
-        // Initial state
         var initialLayer = new LayerViewModel { Name = "Background", PreviewBrush = Brushes.White };
         AttachLayer(initialLayer);
         Layers.Add(initialLayer);
         SelectedLayer = Layers.FirstOrDefault();
         SelectedTool = ToolKind.Move;
         SelectedTheme = EditorTheme.System;
-
-        // ---- Derived properties (ReactiveUI way) ----
 
         this.WhenAnyValue(x => x.SelectedTool)
             .Select(t => t switch
@@ -168,7 +162,6 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
             .Throttle(TimeSpan.FromMilliseconds(400))
             .Subscribe(PushRecentColor);
 
-        // Apply theme when it changes
         this.WhenAnyValue(x => x.SelectedTheme)
             .Skip(1)
             .Subscribe(ApplyTheme);
@@ -176,8 +169,6 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         RecentColors.CollectionChanged += (_, __) => this.RaisePropertyChanged(nameof(HasRecentColors));
 
         Layers.CollectionChanged += (_, __) => RaiseLayersChanged();
-
-        // ---- Commands ----
 
         SelectToolCommand = ReactiveCommand.Create<string?>(SelectTool);
 
@@ -230,8 +221,6 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         _undoRedoManager.ExecuteCommand(command);
     }
 
-    // ---------- Document state ----------
-
     private bool _isDirty;
     public bool IsDirty
     {
@@ -245,8 +234,6 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         get => _currentProjectPath;
         set => this.RaiseAndSetIfChanged(ref _currentProjectPath, value);
     }
-
-    // ---------- Canvas ----------
 
     private double _canvasWidth = 1024;
     public double CanvasWidth
@@ -268,8 +255,6 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         get => _canvasBackground;
         set => this.RaiseAndSetIfChanged(ref _canvasBackground, value);
     }
-
-    // ---------- Tools ----------
 
     private ToolKind _selectedTool;
     public ToolKind SelectedTool
@@ -309,34 +294,11 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
     public bool IsForegroundActive => ActiveColorTarget == ActiveColorTarget.Foreground;
     public bool IsCanvasBackgroundActive => ActiveColorTarget == ActiveColorTarget.Background;
 
-    // ---------- Tool properties ----------
-
     private Color _foregroundColor = Colors.Black;
     public Color ForegroundColor
     {
         get => _foregroundColor;
         set => this.RaiseAndSetIfChanged(ref _foregroundColor, value);
-    }
-
-    private int _brushSize = 16;
-    public int BrushSize
-    {
-        get => _brushSize;
-        set => this.RaiseAndSetIfChanged(ref _brushSize, value);
-    }
-
-    private int _opacityPercent = 100;
-    public int OpacityPercent
-    {
-        get => _opacityPercent;
-        set => this.RaiseAndSetIfChanged(ref _opacityPercent, value);
-    }
-
-    private int _hardnessPercent = 80;
-    public int HardnessPercent
-    {
-        get => _hardnessPercent;
-        set => this.RaiseAndSetIfChanged(ref _hardnessPercent, value);
     }
 
     private ActiveColorTarget _activeColorTarget = ActiveColorTarget.Foreground;
@@ -369,7 +331,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
             }
             catch
             {
-                // ignore invalid strings
+                // игнорируем некорректные строки
             }
         }
     }
@@ -410,8 +372,6 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
 
     public bool HasRecentColors => RecentColors.Count > 0;
 
-    // ---------- Zoom ----------
-
     private int _zoomPercent = 100;
     public int ZoomPercent
     {
@@ -449,8 +409,6 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         }
     }
 
-    // ---------- Theme ----------
-
     public enum EditorTheme
     {
         System,
@@ -477,9 +435,6 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
             _ => ThemeVariant.Default
         };
     }
-
-
-    // ---------- Layers ----------
 
     public ObservableCollection<LayerViewModel> Layers { get; } = new();
 
@@ -537,14 +492,10 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         layer.Figures.CollectionChanged += (_, __) => RaiseLayersChanged();
     }
 
-    // ---------- Geometry CurrentLayerFigures (per-layer) ----------
-
     private static readonly ObservableCollection<IFigure> EmptyFigures = new();
     private static readonly Dictionary<IFigure, IFigureGraphicProperties> EmptyFiguresGraphicProperties = new();
 
-    /// <summary>
-    /// Фигуры активного слоя. Для невырбранного слоя возвращается пустая коллекция.
-    /// </summary>
+    // Фигуры активного слоя. Для невырбранного слоя возвращается пустая коллекция.
     public ObservableCollection<IFigure> CurrentLayerFigures => SelectedLayer?.Figures ?? EmptyFigures;
     public Dictionary<IFigure, IFigureGraphicProperties> CurrentLayerFiguresGraphicProperties => SelectedLayer?.FiguresGraphicProperties ?? EmptyFiguresGraphicProperties;
 
@@ -560,8 +511,6 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
     private Geometry.Point? _ellipseCenter;
     private readonly List<Geometry.Point> _curvePoints = new();
     private readonly List<Geometry.Point> _curvedPolygonPoints = new();
-
-    // ---------- Commands (public for XAML bindings) ----------
 
     public ReactiveCommand<string?, Unit> SelectToolCommand { get; }
 
@@ -589,9 +538,6 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
     public ReactiveCommand<string?, Unit> SelectActiveColorTargetCommand { get; }
 
     public ReactiveCommand<object?, Unit> ApplyRecentColorCommand { get; }
-
-
-    // ---------- Command handlers ----------
 
     private void SelectTool(string? tool)
     {
@@ -871,7 +817,6 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
     {
         shouldStartDragging = false;
 
-        // Fill tool: click on a figure toggles its own fill state.
         if (SelectedTool == ToolKind.Fill && isLeftButtonPressed)
         {
             var fillTarget = figures.Reverse().FirstOrDefault(f => f.IsIn(modelPoint, hitTolerance));
@@ -880,7 +825,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
                 ToggleFigureFill(fillTarget);
                 SelectedFigure = fillTarget;
             }
-            return true; // prevent selection/dragging/move actions while fill tool is active
+            return true;
         }
 
         if (SelectedTool == ToolKind.Line || SelectedTool == ToolKind.Polygon || SelectedTool == ToolKind.Ellipse || SelectedTool == ToolKind.Curve || SelectedTool == ToolKind.CurvedPolygon)
@@ -1044,11 +989,8 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         IsDirty = true;
     }
 
-    // ---------- Helpers ----------
-
     private void ToggleFigureFill(IFigure figure)
     {
-        // Update fill state per-figure (stored in the layer properties map).
         var layer = Layers.FirstOrDefault(l => l.FiguresGraphicProperties.ContainsKey(figure));
         if (layer is null)
             return;
@@ -1073,7 +1015,6 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
 
     private void InitializeDemoFigures()
     {
-        // Заготовка на базе Geometry.IFigure
         var line = new Line(new Geometry.Point(100, 120), new Geometry.Point(360, 180));
         AddFigureToCurrentLayer(line, new FigureGraphicProperties(Colors.CornflowerBlue, 2.0));
 

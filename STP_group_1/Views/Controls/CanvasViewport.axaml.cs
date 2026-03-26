@@ -29,10 +29,8 @@ public partial class CanvasViewport : UserControl
         AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
         AddHandler(KeyUpEvent, OnKeyUp, RoutingStrategies.Tunnel);
 
-        // Zoom (Ctrl + wheel)
         PART_Scroll.AddHandler(PointerWheelChangedEvent, OnPointerWheelChanged, RoutingStrategies.Tunnel);
 
-        // Pan (Space + drag)
         PART_Scroll.AddHandler(PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel);
         PART_Scroll.AddHandler(PointerMovedEvent, OnPointerMoved, RoutingStrategies.Tunnel);
         PART_Scroll.AddHandler(PointerReleasedEvent, OnPointerReleased, RoutingStrategies.Tunnel);
@@ -46,7 +44,6 @@ public partial class CanvasViewport : UserControl
         if (!e.KeyModifiers.HasFlag(KeyModifiers.Control))
             return;
 
-        // simple discrete steps: up => +10%, down => -10%
         var delta = e.Delta.Y;
         if (delta > 0)
             await vm.ZoomInCommand.Execute(Unit.Default);
@@ -60,13 +57,6 @@ public partial class CanvasViewport : UserControl
     {
         if (_scroll is null)
             return;
-
-        // Pan: Space + left button
-        if (!e.KeyModifiers.HasFlag(KeyModifiers.None) && !e.KeyModifiers.HasFlag(KeyModifiers.Shift) &&
-            !e.KeyModifiers.HasFlag(KeyModifiers.Alt) && !e.KeyModifiers.HasFlag(KeyModifiers.Control))
-        {
-            // ignore modified presses except Space (handled by KeyModifiers? space isn't a modifier in Avalonia)
-        }
 
         if (!_spaceDown)
             return;

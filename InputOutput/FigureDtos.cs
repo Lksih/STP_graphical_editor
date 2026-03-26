@@ -13,7 +13,7 @@ internal sealed class FigureDto
     public double? Ry { get; init; }
     public double? Angle { get; init; }
 
-    // ── Style ──
+    // ── Стиль ──
     public ColorDto? StrokeColor { get; init; }
     public double? StrokeThickness { get; init; }
     public ColorDto? FillColor { get; init; }

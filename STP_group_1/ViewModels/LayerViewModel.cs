@@ -30,9 +30,7 @@ public sealed class LayerViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _previewBrush, value);
     }
 
-    /// <summary>
-    /// Геометрические фигуры, принадлежащие этому слою.
-    /// </summary>
+    // Геометрические фигуры, принадлежащие этому слою.
     public ObservableCollection<IFigure> Figures { get; } = new();
     public Dictionary<IFigure, IFigureGraphicProperties> FiguresGraphicProperties { get; } = new();
 }

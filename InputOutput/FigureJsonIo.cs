@@ -148,7 +148,6 @@ public static class FigureJsonIo
 
         double thickness = dto.StrokeThickness ?? 1.0;
 
-        // Fill
         AvColor? fillColor = null;
         if (dto.FillColor is { } fc)
             fillColor = AvColor.FromArgb(fc.A, fc.R, fc.G, fc.B);

@@ -247,7 +247,6 @@ public sealed class GeometryCanvas : Control
                 fillColor.B))
             : null;
 
-        // Special drawing for curves (better than "control-point polyline").
         if (figure is Curve && verts.Length == 3)
         {
             var p0 = verts[0];
@@ -301,7 +300,6 @@ public sealed class GeometryCanvas : Control
 
                 for (int j = 0; j <= segs; j++)
                 {
-                    // avoid duplicate point at joints between segments
                     if (points.Count > 0 && j == 0)
                         continue;
 
@@ -320,11 +318,9 @@ public sealed class GeometryCanvas : Control
                 }
             }
 
-            // CurvedPolygon stores quadratic curve control points in triples: (p0, p1, p2)
             for (int i = 0; i < verts.Length - 2; i += 3)
                 SampleSegment(verts[i], verts[i + 1], verts[i + 2]);
 
-            // close the cycle with the "wrap-around" segment
             if (verts.Length >= 3)
                 SampleSegment(verts[verts.Length - 2], verts[verts.Length - 1], verts[0]);
 
@@ -339,7 +335,6 @@ public sealed class GeometryCanvas : Control
                     g.EndFigure(true);
                 }
 
-                // DrawGeometry с заполнением (fillBrush != null) также рисует контур.
                 ctx.DrawGeometry(fillBrush, pen, geo);
                 return;
             }
@@ -364,7 +359,6 @@ public sealed class GeometryCanvas : Control
                 g.EndFigure(true);
             }
 
-            // DrawGeometry с заполнением (fillBrush != null) также рисует контур.
             ctx.DrawGeometry(fillBrush, pen, geo);
         }
         else

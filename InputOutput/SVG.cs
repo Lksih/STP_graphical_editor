@@ -247,7 +247,6 @@ namespace InputOutput
 
         public static void WriteStyleToXml(XmlElement el, IFigureGraphicProperties style)
         {
-            // Stroke
             el.SetAttribute("stroke", ColorToHex(style.Color));
             el.SetAttribute("stroke-width",
                 style.Thickness.ToString(CultureInfo.InvariantCulture));
@@ -284,7 +283,6 @@ namespace InputOutput
             var fillStr = node.Attributes?["fill"]?.Value;
             var fillOpStr = node.Attributes?["fill-opacity"]?.Value;
 
-            // Stroke
             var strokeColor = strokeStr != null
                 ? ParseColor(strokeStr)
                 : AvColor.FromArgb(255, 0, 0, 0);
@@ -301,7 +299,6 @@ namespace InputOutput
                 ? double.Parse(widthStr, CultureInfo.InvariantCulture)
                 : 1.0;
 
-            // Fill
             AvColor? fillColor = null;
             if (!string.IsNullOrWhiteSpace(fillStr) && fillStr != "none")
             {
@@ -495,12 +492,10 @@ public class CurvedPolygonSerializer : IFigureSerializer
         var v = figure.Vertex;
         var sb = new StringBuilder();
 
-        // Move to first endpoint
         sb.Append(
             $"M {v[0].X.ToString(CultureInfo.InvariantCulture)} " +
             $"{v[0].Y.ToString(CultureInfo.InvariantCulture)} ");
 
-        // Quadratic curves: step 2 — each (control, endpoint)
         for (int i = 0; i < v.Length - 2; i += 2)
         {
             sb.Append(
@@ -510,7 +505,6 @@ public class CurvedPolygonSerializer : IFigureSerializer
                 $"{v[i + 2].Y.ToString(CultureInfo.InvariantCulture)} ");
         }
 
-        // Closing curve: last control → back to first endpoint
         sb.Append(
             $"Q {v[v.Length - 1].X.ToString(CultureInfo.InvariantCulture)} " +
             $"{v[v.Length - 1].Y.ToString(CultureInfo.InvariantCulture)} " +
