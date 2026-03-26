@@ -726,7 +726,6 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
             layer.Figures.Add(figure);
         }
 
-        CurrentProjectPath = path;
         IsDirty = true;
     }
 
