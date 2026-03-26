@@ -214,6 +214,22 @@ public sealed class GeometryCanvas : Control
 
         var pen = new Pen(new SolidColorBrush(color), thickness);
 
+        var isFilled = false;
+        var fillColor = color;
+        if (FigureGraphicPropertiesMap is not null && FigureGraphicPropertiesMap.TryGetValue(figure, out var props2))
+        {
+            isFilled = props2.IsFilled;
+            fillColor = props2.FillColor;
+        }
+
+        var fillBrush = isFilled
+            ? new SolidColorBrush(new Color(
+                (byte)Math.Clamp((int)(fillColor.A * 0.25), 0, 255),
+                fillColor.R,
+                fillColor.G,
+                fillColor.B))
+            : null;
+
         // Special drawing for curves (better than "control-point polyline").
         if (figure is Curve && verts.Length == 3)
         {
@@ -300,13 +316,14 @@ public sealed class GeometryCanvas : Control
                 var geo = new StreamGeometry();
                 using (var g = geo.Open())
                 {
-                    g.BeginFigure(new Avalonia.Point(points[0].X * ZoomFactor, points[0].Y * ZoomFactor), false);
+                    g.BeginFigure(new Avalonia.Point(points[0].X * ZoomFactor, points[0].Y * ZoomFactor), isFilled);
                     for (int i = 1; i < points.Count; i++)
                         g.LineTo(new Avalonia.Point(points[i].X * ZoomFactor, points[i].Y * ZoomFactor));
                     g.EndFigure(true);
                 }
 
-                ctx.DrawGeometry(null, pen, geo);
+                // DrawGeometry с заполнением (fillBrush != null) также рисует контур.
+                ctx.DrawGeometry(fillBrush, pen, geo);
                 return;
             }
         }
@@ -322,7 +339,7 @@ public sealed class GeometryCanvas : Control
             var geo = new StreamGeometry();
             using (var g = geo.Open())
             {
-                g.BeginFigure(new Avalonia.Point(verts[0].X * ZoomFactor, verts[0].Y * ZoomFactor), true);
+                g.BeginFigure(new Avalonia.Point(verts[0].X * ZoomFactor, verts[0].Y * ZoomFactor), isFilled);
                 for (var i = 1; i < verts.Length; i++)
                 {
                     g.LineTo(new Avalonia.Point(verts[i].X * ZoomFactor, verts[i].Y * ZoomFactor));
@@ -330,12 +347,16 @@ public sealed class GeometryCanvas : Control
                 g.EndFigure(true);
             }
 
-            ctx.DrawGeometry(null, pen, geo);
+            // DrawGeometry с заполнением (fillBrush != null) также рисует контур.
+            ctx.DrawGeometry(fillBrush, pen, geo);
         }
         else
         {
             var centerPt = new Avalonia.Point(center.X * ZoomFactor, center.Y * ZoomFactor);
-            ctx.DrawEllipse(null, pen, centerPt, verts[0].X, verts[0].Y);
+            if (fillBrush is not null)
+                ctx.DrawEllipse(fillBrush, pen, centerPt, verts[0].X, verts[0].Y);
+            else
+                ctx.DrawEllipse(null, pen, centerPt, verts[0].X, verts[0].Y);
         }
     }
 }

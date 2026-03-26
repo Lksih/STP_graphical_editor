@@ -291,6 +291,13 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
 
     private readonly ObservableAsPropertyHelper<bool> _isCurvedPolygonTool;
     public bool IsCurvedPolygonTool => _isCurvedPolygonTool.Value;
+
+    private bool _isFillToolActive;
+    public bool IsFillToolActive
+    {
+        get => _isFillToolActive;
+        set => this.RaiseAndSetIfChanged(ref _isFillToolActive, value);
+    }
     public bool IsForegroundActive => ActiveColorTarget == ActiveColorTarget.Foreground;
     public bool IsCanvasBackgroundActive => ActiveColorTarget == ActiveColorTarget.Background;
 
@@ -593,6 +600,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
                 _ellipseCenter = null;
                 _curvePoints.Clear();
                 _curvedPolygonPoints.Clear();
+                IsFillToolActive = false; // Отключаем заливку при переключении на другой инструмент
             }
 
             SelectedTool = parsed;
@@ -778,6 +786,18 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
     {
         shouldStartDragging = false;
 
+        // Fill tool: click on a figure toggles its own fill state.
+        if (IsFillToolActive && isLeftButtonPressed)
+        {
+            var fillTarget = figures.Reverse().FirstOrDefault(f => f.IsIn(modelPoint, hitTolerance));
+            if (fillTarget is not null && (fillTarget is Polygon || fillTarget is CurvedPolygon || fillTarget is Ellipse))
+            {
+                ToggleFigureFill(fillTarget);
+                SelectedFigure = fillTarget;
+            }
+            return true; // prevent selection/dragging/move actions while fill tool is active
+        }
+
         if (SelectedTool == ToolKind.Line || SelectedTool == ToolKind.Polygon || SelectedTool == ToolKind.Ellipse || SelectedTool == ToolKind.Curve || SelectedTool == ToolKind.CurvedPolygon)
         {
             if (SelectedTool == ToolKind.Line && isLeftButtonPressed)
@@ -923,6 +943,31 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
     }
 
     // ---------- Helpers ----------
+
+    private void ToggleFigureFill(IFigure figure)
+    {
+        // Update fill state per-figure (stored in the layer properties map).
+        var layer = Layers.FirstOrDefault(l => l.FiguresGraphicProperties.ContainsKey(figure));
+        if (layer is null)
+            return;
+
+        var oldProps = layer.FiguresGraphicProperties[figure];
+        var newIsFilled = !oldProps.IsFilled;
+        var newFillColor = newIsFilled ? ActiveColor : oldProps.FillColor;
+
+        var newProps = new FigureGraphicProperties(
+            oldProps.Color,
+            oldProps.Thickness,
+            isFilled: newIsFilled,
+            fillColor: newFillColor);
+
+        ExecuteCommand(new ToggleFillFigureCommand(
+            layer.FiguresGraphicProperties,
+            VisibleFiguresGraphicProperties,
+            figure,
+            oldProps,
+            newProps));
+    }
 
     private void InitializeDemoFigures()
     {
