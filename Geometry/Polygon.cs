@@ -108,7 +108,7 @@ namespace Geometry
             else
             {
                 Point difpa, difpb, difba;
-                double normpa, normpb, normba, cs1, cs2, p_geron, s, h;
+                double normpa, normpb, normba, cs1, cs2, h;
                 for (int i = 0; i < Vertex.Length - 1; i++)
                 {
                     difpa = p - Vertex[i]; difpb = p - Vertex[i + 1];
