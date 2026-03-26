@@ -61,6 +61,7 @@
         <KeyBinding Gesture="V" Command="{Binding SelectToolCommand}" CommandParameter="Move" />
         <KeyBinding Gesture="R" Command="{Binding RotateSelectedFigureCommand}" />
         <KeyBinding Gesture="+" Command="{Binding IncreaseSelectedFigureCommand}" />
+        <KeyBinding Gesture="-" Command="{Binding DecreaseSelectedFigureCommand}" />
         <KeyBinding Gesture="L" Command="{Binding SelectToolCommand}" CommandParameter="Line" />
         <KeyBinding Gesture="P" Command="{Binding SelectToolCommand}" CommandParameter="Polygon" />
         <KeyBinding Gesture="O" Command="{Binding SelectToolCommand}" CommandParameter="Ellipse" />
@@ -143,11 +144,11 @@
                             <TextBlock Text="Del" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </ToggleButton>
 
-                        <Button Classes="ToolModeButton RotateActionButton"
+                        <Button Classes="ToolModeButton IncreaseActionButton"
                                 Margin="2"
-                                ToolTip.Tip="Повернуть выделенную фигуру (R)"
-                                Command="{Binding RotateSelectedFigureCommand}">
-                            <TextBlock Text="⟳"
+                                ToolTip.Tip="Увеличить выделенную фигуру (+)"
+                                Command="{Binding IncreaseSelectedFigureCommand}">
+                            <TextBlock Text="+"
                                        FontSize="14"
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Center"/>
@@ -155,9 +156,19 @@
 
                         <Button Classes="ToolModeButton IncreaseActionButton"
                                 Margin="2"
-                                ToolTip.Tip="Увеличить выделенную фигуру (R)"
-                                Command="{Binding IncreaseSelectedFigureCommand}">
-                            <TextBlock Text="+"
+                                ToolTip.Tip="Уменьшить выделенную фигуру (-)"
+                                Command="{Binding DecreaseSelectedFigureCommand}">
+                            <TextBlock Text="-"
+                                       FontSize="14"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"/>
+                        </Button>
+
+                        <Button Classes="ToolModeButton RotateActionButton"
+                                Margin="2"
+                                ToolTip.Tip="Повернуть выделенную фигуру (R)"
+                                Command="{Binding RotateSelectedFigureCommand}">
+                            <TextBlock Text="⟳"
                                        FontSize="14"
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Center"/>
