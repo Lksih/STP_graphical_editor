@@ -141,8 +141,8 @@ namespace Geometry
             
             Point difba = b - a;
             double normba = Math.Sqrt(Math.Pow(difba.X, 2) + Math.Pow(difba.Y, 2)), 
-            cs1 = (difpa.X * difba.Y + difpa.Y * difba.X) / (normpa*normba), 
-            cs2 = (difpb.X * (-difba.Y) + difpb.Y * (-difba.X)) / (normpb*normba);
+            cs1 = (difpa.X * difba.X + difpa.Y * difba.Y) / (normpa*normba), 
+            cs2 = (difpb.X * (-difba.X) + difpb.Y * (-difba.Y)) / (normpb*normba);
             if (cs1 < 0 || cs2 < 0)
                 return false;
             

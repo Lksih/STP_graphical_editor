@@ -77,20 +77,20 @@ namespace Geometry
             if (eps < 0)
             throw new IncorrectInaccuracyParameter();
 
-            Point difp1 = p - Vertex[0], difp2 = p - Vertex[1];
-            double normp1 = Math.Sqrt((Math.Pow(difp1.X, 2) + Math.Pow(difp1.Y, 2))),
-            normp2 = Math.Sqrt((Math.Pow(difp2.X, 2) + Math.Pow(difp2.Y, 2)));
-            if (normp1 <= eps || normp2 <= eps)
+            Point difpa = p - Vertex[0], difpb = p - Vertex[1];
+            double normpa = Math.Sqrt((Math.Pow(difpa.X, 2) + Math.Pow(difpb.Y, 2))),
+            normpb = Math.Sqrt((Math.Pow(difpb.X, 2) + Math.Pow(difpb.Y, 2)));
+            if (normpa <= eps || normpb <= eps)
                 return true;
             
-            Point dif12 = Vertex[1] - Vertex[0];
-            double norm12 = Math.Sqrt(Math.Pow(dif12.X, 2) + Math.Pow(dif12.Y, 2)), 
-            cs1 = (difp1.X * dif12.Y + difp1.Y * dif12.X) / (normp1*norm12), 
-            cs2 = (difp2.X * (-dif12.Y) + difp2.Y * (-dif12.X)) / (normp2*norm12);
+            Point difba = Vertex[1] - Vertex[0];
+            double normba = Math.Sqrt(Math.Pow(difba.X, 2) + Math.Pow(difba.Y, 2)), 
+            cs1 = (difpa.X * difba.X + difpa.Y * difba.Y) / (normpa*normba), 
+            cs2 = (difpb.X * (-difba.X) + difpb.Y * (-difba.Y)) / (normpb*normba);
             if (cs1 < 0 || cs2 < 0)
                 return false;
             
-            double h = Math.Abs(p.X * (Vertex[0].Y - Vertex[1].Y) + Vertex[0].X * (Vertex[1].Y - p.Y) + Vertex[1].X * (p.Y - Vertex[0].Y)) / norm12;
+            double h = Math.Abs(p.X * (Vertex[0].Y - Vertex[1].Y) + Vertex[0].X * (Vertex[1].Y - p.Y) + Vertex[1].X * (p.Y - Vertex[0].Y)) / normba;
             return h <= eps;
             
         }
