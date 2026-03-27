@@ -59,8 +59,11 @@ namespace Geometry
         public void Move(double dx, double dy)
         {
             Point d = new Point(dx, dy);
-            for (int i = 0; i < VertArray.Length; i++)
-                VertArray[i]+=d;
+
+            VertArray[0] += d;
+            VertArray[1] += d;
+
+            Center = (VertArray[0] + VertArray[1]) / 2;
         }
         public void UpdateVertex(ReadOnlySpan<Point> NewVertex)
         {
