@@ -136,6 +136,10 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
             .ToProperty(this, x => x.ZoomFactor, out _zoomFactor);
 
         this.WhenAnyValue(x => x.ZoomPercent)
+            .Select(z => z > 100)
+            .ToProperty(this, x => x.IsMiniMapVisible, out _isMiniMapVisible);
+
+        this.WhenAnyValue(x => x.ZoomPercent)
             .Subscribe(z =>
             {
                 var text = $"{z}%";
@@ -384,6 +388,9 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
     private readonly ObservableAsPropertyHelper<double> _zoomFactor;
     public double ZoomFactor => _zoomFactor.Value;
 
+    private readonly ObservableAsPropertyHelper<bool> _isMiniMapVisible;
+    public bool IsMiniMapVisible => _isMiniMapVisible.Value;
+
     private readonly ObservableAsPropertyHelper<double> _canvasWidthZoomed;
     public double CanvasWidthZoomed => _canvasWidthZoomed.Value;
 
@@ -545,18 +552,24 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
     {
         if (Enum.TryParse<ToolKind>(tool, ignoreCase: true, out var parsed))
         {
-            if (SelectedTool != parsed)
-            {
-                // сбрасываем наборы точек ввода при переключении режимов
-                // (чтобы случайно не создать фигуру из частично введенных данных).
-                _lineStart = null;
-                _polygonPoints.Clear();
-                _ellipseCenter = null;
-                _curvePoints.Clear();
-                _curvedPolygonPoints.Clear();
-            }
+            // Повторный клик по уже активному инструменту выключает его
+            // и возвращает в нейтральный режим перемещения.
+            var nextTool = (SelectedTool == parsed && parsed != ToolKind.Move)
+                ? ToolKind.Move
+                : parsed;
 
-            SelectedTool = parsed;
+            if (SelectedTool == nextTool)
+                return;
+
+            // Сбрасываем наборы точек ввода при переключении режимов
+            // (чтобы случайно не создать фигуру из частично введенных данных).
+            _lineStart = null;
+            _polygonPoints.Clear();
+            _ellipseCenter = null;
+            _curvePoints.Clear();
+            _curvedPolygonPoints.Clear();
+
+            SelectedTool = nextTool;
         }
     }
 

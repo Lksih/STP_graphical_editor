@@ -84,8 +84,30 @@ public sealed class GeometryCanvas : Control
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        // Control по умолчанию меряется в 0x0; нам нужно занимать доступное место.
-        return availableSize;
+        // Никогда не возвращаем Infinity/NaN: внутри Canvas availableSize может быть бесконечным,
+        // а это приводит к InvalidOperationException ("Invalid size returned for Measure").
+        var w = Width;
+        var h = Height;
+
+        var hasExplicitW = !double.IsNaN(w) && !double.IsInfinity(w);
+        var hasExplicitH = !double.IsNaN(h) && !double.IsInfinity(h);
+
+        if (hasExplicitW || hasExplicitH)
+        {
+            var mw = hasExplicitW ? w : 0;
+            var mh = hasExplicitH ? h : 0;
+            return new Size(Math.Max(0, mw), Math.Max(0, mh));
+        }
+
+        var aw = availableSize.Width;
+        var ah = availableSize.Height;
+
+        if (double.IsNaN(aw) || double.IsInfinity(aw))
+            aw = 0;
+        if (double.IsNaN(ah) || double.IsInfinity(ah))
+            ah = 0;
+
+        return new Size(Math.Max(0, aw), Math.Max(0, ah));
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)

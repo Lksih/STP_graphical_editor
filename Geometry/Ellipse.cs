@@ -19,15 +19,15 @@ namespace Geometry
         {
             if (dx == 0 || dy == 0)
             throw new IncorrectScaleParameter();
-            Rx *= dx;
-            Ry *= dy;
+            Rx *= Math.Abs(dx);
+            Ry *= Math.Abs(dy);
         }
         public void RadialScale(double dr)
         {
             if (dr == 0)
             throw new IncorrectScaleParameter();
-            Rx *= dr;
-            Ry *= dr;
+            Rx *= Math.Abs(dr);
+            Ry *= Math.Abs(dr);
         }
         public void Rotate(double angle)
         {
@@ -43,7 +43,7 @@ namespace Geometry
             if (!NewVertex.IsEmpty)
             throw new IncorrectVertexSpan("Эллипс не имеет вершин");
         }
-        public IEnumerable<IDrawFigure> Draw() => throw new NotImplementedException();
+
         public bool IsIn(Point p, double eps)
         {
             if (eps < 0)
