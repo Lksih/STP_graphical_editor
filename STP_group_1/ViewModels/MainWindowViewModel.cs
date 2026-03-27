@@ -221,7 +221,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
 
         ApplyRecentColorCommand = ReactiveCommand.Create<object?>(ApplyRecentColor);
 
-        InitializeDemoFigures();
+        //InitializeDemoFigures();
     }
 
     public void ExecuteCommand(IUndoRedoCommand command)
