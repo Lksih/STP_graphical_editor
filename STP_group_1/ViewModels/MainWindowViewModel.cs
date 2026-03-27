@@ -569,6 +569,8 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
             _curvePoints.Clear();
             _curvedPolygonPoints.Clear();
 
+            PressedPoints.Clear();
+
             SelectedTool = nextTool;
         }
     }
