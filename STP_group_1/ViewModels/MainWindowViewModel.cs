@@ -854,18 +854,28 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
                 PressedPoints.Add(modelPoint);
             }
 
-            if (SelectedTool == ToolKind.Line && isLeftButtonPressed)
+            if (SelectedTool == ToolKind.Line)
             {
-                if (_lineStart is null)
+                if (isLeftButtonPressed)
                 {
-                    // При первом клике сохраняем начальную точку
-                    _lineStart = modelPoint;
+                    if (_lineStart is null)
+                    {
+                        // При первом клике сохраняем начальную точку
+                        _lineStart = modelPoint;
+                    }
+                    else
+                    {
+                        // При втором клике создаём линию и сбрасываем точку
+                        AddNewFigure(new Line(_lineStart, modelPoint));
+                        _lineStart = null;
+                    }
                 }
-                else
+
+                // отмена ввода линии правой кнопкой
+                if (isRightButtonPressed)
                 {
-                    // При втором клике создаём линию и сбрасываем точку
-                    AddNewFigure(new Line(_lineStart, modelPoint));
                     _lineStart = null;
+                    PressedPoints.Clear();
                 }
 
                 return true;
@@ -887,25 +897,35 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
                 }
             }
 
-            if (SelectedTool == ToolKind.Ellipse && isLeftButtonPressed)
+            if (SelectedTool == ToolKind.Ellipse)
             {
-                if (_ellipseCenter is null)
+                if (isLeftButtonPressed)
                 {
-                    _ellipseCenter = modelPoint;
+                    if (_ellipseCenter is null)
+                    {
+                        _ellipseCenter = modelPoint;
+                    }
+                    else
+                    {
+                        var c = _ellipseCenter;
+                        var rx = Math.Abs(modelPoint.X - c.X);
+                        var ry = Math.Abs(modelPoint.Y - c.Y);
+                        if (rx < 1) rx = 1;
+                        if (ry < 1) ry = 1;
+
+                        if (modifiers.HasFlag(KeyModifiers.Shift))
+                            rx = ry = Math.Max(Math.Abs(rx), Math.Abs(ry));
+
+                        AddNewFigure(new Ellipse(c, rx, ry));
+                        _ellipseCenter = null;
+                    }
                 }
-                else
+
+                // отмена ввода эллипса правой кнопкой
+                if (isRightButtonPressed)
                 {
-                    var c = _ellipseCenter;
-                    var rx = Math.Abs(modelPoint.X - c.X);
-                    var ry = Math.Abs(modelPoint.Y - c.Y);
-                    if (rx < 1) rx = 1;
-                    if (ry < 1) ry = 1;
-
-                    if (modifiers.HasFlag(KeyModifiers.Shift))
-                        rx = ry = Math.Max(Math.Abs(rx), Math.Abs(ry));
-
-                    AddNewFigure(new Ellipse(c, rx, ry));
                     _ellipseCenter = null;
+                    PressedPoints.Clear();
                 }
 
                 return true;
@@ -928,6 +948,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
                 if (isRightButtonPressed)
                 {
                     _curvePoints.Clear();
+                    PressedPoints.Clear();
                     return true;
                 }
             }
