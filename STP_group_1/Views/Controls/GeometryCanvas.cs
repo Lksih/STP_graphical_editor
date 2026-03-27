@@ -1,15 +1,15 @@
 
-using System;
-using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
 using Geometry;
-using STP_group_1.ViewModels;
 using Geometry.Graphic;
+using STP_group_1.ViewModels;
+using System;
+using System.Collections.Generic;
+using System.Collections.Specialized;
+using System.Linq;
 
 namespace STP_group_1.Views.Controls;
 
@@ -409,11 +409,20 @@ public sealed class GeometryCanvas : Control
         }
         else
         {
+            double angle = ((Ellipse)figure).Angle;
+
             var centerPt = new Avalonia.Point(center.X * ZoomFactor, center.Y * ZoomFactor);
-            if (fillBrush is not null)
-                ctx.DrawEllipse(fillBrush, pen, centerPt, verts[0].X, verts[0].Y);
-            else
-                ctx.DrawEllipse(null, pen, centerPt, verts[0].X, verts[0].Y);
+
+            var matrix = Matrix.CreateRotation(angle) *
+                 Matrix.CreateTranslation(centerPt.X, centerPt.Y);
+
+            using (ctx.PushTransform(matrix))
+            {
+                if (fillBrush is not null)
+                    ctx.DrawEllipse(fillBrush, pen, new Avalonia.Point(0, 0), verts[0].X, verts[0].Y);
+                else
+                    ctx.DrawEllipse(null, pen, new Avalonia.Point(0, 0), verts[0].X, verts[0].Y);
+            }
         }
     }
 }
