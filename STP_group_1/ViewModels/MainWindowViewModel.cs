@@ -140,7 +140,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         this.WhenAnyValue(x => x.ZoomPercent)
             .Subscribe(z =>
             {
-                var text = $"{z}%";
+                var text = $"{Math.Round(z)}%";
                 if (_zoomPercentText != text)
                 {
                     _zoomPercentText = text;
@@ -376,11 +376,11 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
 
     public bool HasRecentColors => RecentColors.Count > 0;
 
-    private int _zoomPercent = 100;
-    public int ZoomPercent
+    private double _zoomPercent = 100;
+    public double ZoomPercent
     {
         get => _zoomPercent;
-        set => this.RaiseAndSetIfChanged(ref _zoomPercent, Clamp(value, 10, 800));
+        set => this.RaiseAndSetIfChanged(ref _zoomPercent, Clamp(value, 10.0, 800.0));
     }
 
     private readonly ObservableAsPropertyHelper<double> _zoomFactor;
@@ -409,7 +409,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
             var text = value?.Trim() ?? string.Empty;
             text = text.Replace("%", "").Trim();
 
-            if (int.TryParse(text, out var parsed))
+            if (double.TryParse(text, out var parsed))
             {
                 ZoomPercent = parsed;
             }
@@ -704,9 +704,9 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
 
     public Task<bool> CanCloseAsync() => ConfirmLoseChangesIfDirtyAsync();
 
-    private void ZoomIn() => ZoomPercent = Clamp(ZoomPercent + 10, 10, 800);
+    private void ZoomIn() => ZoomPercent = Clamp(ZoomPercent * 1.1, 10.0, 800.0);
 
-    private void ZoomOut() => ZoomPercent = Clamp(ZoomPercent - 10, 10, 800);
+    private void ZoomOut() => ZoomPercent = Clamp(ZoomPercent / 1.1, 10.0, 800.0);
 
 
     private void DeleteFigure(IFigure figure)
@@ -1061,6 +1061,7 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
     }
 
     private static int Clamp(int v, int min, int max) => v < min ? min : (v > max ? max : v);
+    private static double Clamp(double v, double min, double max) => v < min ? min : (v > max ? max : v);
 
     private void AddFigureToCurrentLayer(IFigure figure, IFigureGraphicProperties figureGraphicProperties)
     {

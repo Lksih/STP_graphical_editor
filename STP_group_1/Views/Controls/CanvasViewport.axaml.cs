@@ -4,7 +4,6 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using System.Reactive;
 using System.Reactive.Linq;
-using Avalonia.Threading;
 using System.ComponentModel;
 using System;
 
@@ -72,7 +71,6 @@ public partial class CanvasViewport : UserControl
 
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        // High-frequency but cheap; restrict to things that affect minimap math.
         if (e.PropertyName is nameof(ViewModels.MainWindowViewModel.ZoomPercent) or
             nameof(ViewModels.MainWindowViewModel.ZoomPercentText) or
             nameof(ViewModels.MainWindowViewModel.CanvasWidth) or
@@ -83,8 +81,11 @@ public partial class CanvasViewport : UserControl
         }
     }
 
-    private async void OnPointerWheelChanged(object? sender, PointerWheelEventArgs e)
+    private void OnPointerWheelChanged(object? sender, PointerWheelEventArgs e)
     {
+        if (_scroll is null)
+            return;
+
         if (DataContext is not ViewModels.MainWindowViewModel vm)
             return;
 
@@ -95,13 +96,19 @@ public partial class CanvasViewport : UserControl
         var pointerInViewport = e.GetPosition(_scroll);
         var oldOffset = _scroll.Offset;
 
-        var oldContentPoint = oldOffset + pointerInViewport;
+        // Keep model point under cursor stable across zoom changes.
+        var modelPointX = (oldOffset.X + pointerInViewport.X) / Math.Max(oldZoom, 0.000001);
+        var modelPointY = (oldOffset.Y + pointerInViewport.Y) / Math.Max(oldZoom, 0.000001);
 
         var delta = e.Delta.Y;
-        if (delta > 0)
-            await vm.ZoomInCommand.Execute(Unit.Default);
-        else if (delta < 0)
-            await vm.ZoomOutCommand.Execute(Unit.Default);
+        if (Math.Abs(delta) < 0.0001)
+            return;
+
+        // Exponential zoom by wheel delta: smooth for both wheel and touchpad.
+        const double wheelStep = 1.10;
+        var factor = Math.Pow(wheelStep, delta);
+        var targetZoomPercent = vm.ZoomPercent * factor;
+        vm.ZoomPercent = Math.Clamp(targetZoomPercent, 10.0, 800.0);
 
         var newZoom = vm.ZoomFactor;
         if (Math.Abs(newZoom - oldZoom) < 0.000001)
@@ -110,17 +117,11 @@ public partial class CanvasViewport : UserControl
             return;
         }
 
-        var ratio = newZoom / oldZoom;
-
-        Dispatcher.UIThread.Post(() =>
-        {
-            if (_scroll is null)
-                return;
-
-            var newOffset = (oldContentPoint * ratio) - pointerInViewport;
-            _scroll.Offset = newOffset;
-            UpdateMiniMap();
-        }, DispatcherPriority.Background);
+        var newOffset = new Vector(
+            modelPointX * newZoom - pointerInViewport.X,
+            modelPointY * newZoom - pointerInViewport.Y);
+        _scroll.Offset = newOffset;
+        UpdateMiniMap();
 
 
         e.Handled = true;
@@ -194,7 +195,6 @@ public partial class CanvasViewport : UserControl
         if (containerSize.Width <= 0 || containerSize.Height <= 0)
             return;
 
-        // Padding so the content doesn't touch the border.
         const double pad = 8.0;
         var availW = Math.Max(0, containerSize.Width - pad * 2);
         var availH = Math.Max(0, containerSize.Height - pad * 2);
@@ -209,13 +209,11 @@ public partial class CanvasViewport : UserControl
         _miniMapCanvas.Width = canvasW * miniScale;
         _miniMapCanvas.Height = canvasH * miniScale;
 
-        // Center inside the container (Canvas panel).
         var left = pad + (availW - _miniMapCanvas.Width) / 2.0;
         var top = pad + (availH - _miniMapCanvas.Height) / 2.0;
         Canvas.SetLeft(_miniMapCanvas, left);
         Canvas.SetTop(_miniMapCanvas, top);
 
-        // Visible viewport rectangle (convert from scroll content pixels -> model -> minimap pixels).
         var zoom = Math.Max(vm.ZoomFactor, 0.0001);
         var view = _scroll.Viewport;
         var off = _scroll.Offset;
