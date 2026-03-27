@@ -409,7 +409,7 @@ public sealed class GeometryCanvas : Control
         }
         else
         {
-            double angle = ((Ellipse)figure).Angle;
+            double angle = ((Ellipse)figure).ReadableAngle;
 
             var centerPt = new Avalonia.Point(center.X * ZoomFactor, center.Y * ZoomFactor);
 
