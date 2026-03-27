@@ -849,7 +849,11 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
 
         if (SelectedTool == ToolKind.Line || SelectedTool == ToolKind.Polygon || SelectedTool == ToolKind.Ellipse || SelectedTool == ToolKind.Curve || SelectedTool == ToolKind.CurvedPolygon)
         {
-            PressedPoints.Add(modelPoint);
+            if (isLeftButtonPressed)
+            {
+                PressedPoints.Add(modelPoint);
+            }
+
             if (SelectedTool == ToolKind.Line && isLeftButtonPressed)
             {
                 if (_lineStart is null)
