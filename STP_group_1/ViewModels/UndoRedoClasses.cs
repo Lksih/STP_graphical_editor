@@ -1,0 +1,309 @@
+using Geometry;
+using ReactiveUI;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Geometry.Graphic;
+
+namespace STP_group_1.ViewModels
+{
+    public interface IUndoRedoCommand
+    {
+        void Execute();
+        void Undo();
+        string Description { get; }
+    }
+
+    public class UndoRedoManager : ReactiveObject
+    {
+        private readonly Stack<IUndoRedoCommand> _undoStack = new();
+        private readonly Stack<IUndoRedoCommand> _redoStack = new();
+        private readonly int _maxStackSize = 100;
+
+        private bool _isExecuting;
+        private bool _isUndoing;
+
+        private bool _canUndo;
+        public bool CanUndo
+        {
+            get => _canUndo;
+            private set => this.RaiseAndSetIfChanged(ref _canUndo, value);
+        }
+
+        private bool _canRedo;
+        public bool CanRedo
+        {
+            get => _canRedo;
+            private set => this.RaiseAndSetIfChanged(ref _canRedo, value);
+        }
+
+        private string _undoDescription = "";
+        public string UndoDescription
+        {
+            get => _undoDescription;
+            private set => this.RaiseAndSetIfChanged(ref _undoDescription, value);
+        }
+
+        private string _redoDescription = "";
+        public string RedoDescription
+        {
+            get => _redoDescription;
+            private set => this.RaiseAndSetIfChanged(ref _redoDescription, value);
+        }
+
+        public event EventHandler<(IUndoRedoCommand command, bool isUndo)>? CommandExecuted;
+
+        public void ExecuteCommand(IUndoRedoCommand command)
+        {
+            if (_isExecuting) return;
+
+            _isExecuting = true;
+            try
+            {
+                command.Execute();
+                _undoStack.Push(command);
+                _redoStack.Clear();
+
+                while (_undoStack.Count > _maxStackSize)
+                    _undoStack.Pop();
+
+                UpdateCanExecute();
+
+                CommandExecuted?.Invoke(this, (command, false));
+            }
+            finally
+            {
+                _isExecuting = false;
+            }
+        }
+
+        public void Undo()
+        {
+            if (_isUndoing || _undoStack.Count == 0) return;
+
+            _isUndoing = true;
+            try
+            {
+                var command = _undoStack.Pop();
+                command.Undo();
+                _redoStack.Push(command);
+                UpdateCanExecute();
+
+                CommandExecuted?.Invoke(this, (command, true));
+            }
+            finally
+            {
+                _isUndoing = false;
+            }
+        }
+
+        public void Redo()
+        {
+            if (_redoStack.Count == 0) return;
+
+            var command = _redoStack.Pop();
+
+            command.Execute();
+            _undoStack.Push(command);
+
+            UpdateCanExecute();
+            CommandExecuted?.Invoke(this, (command, false));
+        }
+
+        private void UpdateCanExecute()
+        {
+            CanUndo = _undoStack.Count > 0;
+            CanRedo = _redoStack.Count > 0;
+
+            UndoDescription = _undoStack.Count > 0 ? _undoStack.Peek().Description : "";
+            RedoDescription = _redoStack.Count > 0 ? _redoStack.Peek().Description : "";
+        }
+
+        public void Clear()
+        {
+            _undoStack.Clear();
+            _redoStack.Clear();
+            UpdateCanExecute();
+        }
+    }
+
+    public class AddFigureCommand : IUndoRedoCommand
+    {
+        private readonly System.Collections.ObjectModel.ObservableCollection<IFigure> _figures;
+        private readonly Dictionary<IFigure, IFigureGraphicProperties> _figuresGraphicProperties;
+        private readonly IFigureGraphicProperties _currentFigureGraphicProperties;
+        private readonly IFigure _figure;
+
+        public AddFigureCommand(System.Collections.ObjectModel.ObservableCollection<IFigure> figures, Dictionary<IFigure, IFigureGraphicProperties> figuresGraphicProperties, IFigure figure, IFigureGraphicProperties figureGraphicProperties)
+        {
+            _figures = figures;
+            _figure = figure;
+            _figuresGraphicProperties = figuresGraphicProperties;
+            _currentFigureGraphicProperties = figureGraphicProperties;
+        }
+
+        public string Description => $"Добавить {_figure.GetType().Name}";
+
+        public void Execute()
+        {
+            _figuresGraphicProperties[_figure] = _currentFigureGraphicProperties;
+            _figures.Add(_figure);
+        }
+
+        public void Undo()
+        {
+            _figuresGraphicProperties.Remove(_figure);
+            _figures.Remove(_figure);
+        }
+    }
+
+    public class MoveFigureCommand : IUndoRedoCommand
+    {
+        private readonly IFigure _figure;
+        private readonly Point _previousCenter;
+        private readonly Point _newCenter;
+
+        public MoveFigureCommand(IFigure figure, Point previousCenter, Point newCenter)
+        {
+            _figure = figure;
+            _previousCenter = new Point(previousCenter.X, previousCenter.Y);
+            _newCenter = new Point(newCenter.X, newCenter.Y);
+        }
+
+        public string Description => "Переместить фигуру";
+
+        public void Execute()
+        {
+            var deltas = _newCenter - _figure.Center;
+            _figure.Move(deltas.X, deltas.Y);
+        }
+
+        public void Undo()
+        {
+            var deltas = _previousCenter - _figure.Center;
+            _figure.Move(deltas.X, deltas.Y);
+        }
+    }
+
+    public class DeleteFigureCommand : IUndoRedoCommand
+    {
+        private readonly System.Collections.ObjectModel.ObservableCollection<IFigure> _figures;
+        private readonly Dictionary<IFigure, IFigureGraphicProperties> _figuresGraphicProperties;
+        private readonly IFigureGraphicProperties _currentFigureGraphicProperties;
+        private readonly IFigure _figure;
+        private readonly int _index;
+        private readonly MainWindowViewModel? _viewModel;
+        public DeleteFigureCommand(System.Collections.ObjectModel.ObservableCollection<IFigure> figures, Dictionary<IFigure, IFigureGraphicProperties> figuresGraphicProperties, IFigure figure)
+        {
+            _figures = figures;
+            _figure = figure;
+            _figuresGraphicProperties = figuresGraphicProperties;
+            _currentFigureGraphicProperties = _figuresGraphicProperties[_figure];
+            _index = figures.IndexOf(figure);
+        }
+
+        public string Description => "Удалить фигуру";
+
+        public void Execute()
+        {
+            _figuresGraphicProperties.Remove(_figure);
+            _figures.Remove(_figure);
+        }
+
+        public void Undo()
+        {
+            _figuresGraphicProperties[_figure] = _currentFigureGraphicProperties;
+            if (_index >= 0 && _index <= _figures.Count)
+                _figures.Insert(_index, _figure);
+            else
+                _figures.Add(_figure);
+        }
+    }
+
+    public class RotateFigureCommand : IUndoRedoCommand
+    {
+        private readonly IFigure _figure;
+        private readonly double _angle;
+
+        public RotateFigureCommand(IFigure figure, double angle)
+        {
+            _figure = figure;
+            _angle = angle;
+        }
+
+        public string Description => "Повернуть фигуру";
+
+        public void Execute()
+        {
+            _figure.Rotate(_angle);
+        }
+
+        public void Undo()
+        {
+            _figure.Rotate(-_angle);
+        }
+    }
+
+    public class RadialScaleFigureCommand : IUndoRedoCommand
+    {
+        private readonly IFigure _figure;
+        private readonly double _dr;
+
+        public RadialScaleFigureCommand(IFigure figure, double dr)
+        {
+            _figure = figure;
+            _dr = dr;
+        }
+
+        public string Description => "Увеличить фигуру";
+
+        public void Execute()
+        {
+            _figure.RadialScale(_dr);
+        }
+
+        public void Undo()
+        {
+            _figure.RadialScale(1 / _dr);
+        }
+    }
+
+    public class ToggleFillFigureCommand : IUndoRedoCommand
+    {
+        private readonly Dictionary<IFigure, IFigureGraphicProperties> _layerFigureGraphicProperties;
+        private readonly Dictionary<IFigure, IFigureGraphicProperties> _visibleFigureGraphicProperties;
+        private readonly IFigure _figure;
+        private readonly IFigureGraphicProperties _oldFigureGraphicProperties;
+        private readonly IFigureGraphicProperties _newFigureGraphicProperties;
+
+        public ToggleFillFigureCommand(
+            Dictionary<IFigure, IFigureGraphicProperties> layerFigureGraphicProperties,
+            Dictionary<IFigure, IFigureGraphicProperties> visibleFigureGraphicProperties,
+            IFigure figure,
+            IFigureGraphicProperties oldFigureGraphicProperties,
+            IFigureGraphicProperties newFigureGraphicProperties)
+        {
+            _layerFigureGraphicProperties = layerFigureGraphicProperties;
+            _visibleFigureGraphicProperties = visibleFigureGraphicProperties;
+            _figure = figure;
+            _oldFigureGraphicProperties = oldFigureGraphicProperties;
+            _newFigureGraphicProperties = newFigureGraphicProperties;
+        }
+
+        public string Description => "Переключить заливку фигуры";
+
+        public void Execute()
+        {
+            _layerFigureGraphicProperties[_figure] = _newFigureGraphicProperties;
+            if (_visibleFigureGraphicProperties.ContainsKey(_figure))
+                _visibleFigureGraphicProperties[_figure] = _newFigureGraphicProperties;
+        }
+
+        public void Undo()
+        {
+            _layerFigureGraphicProperties[_figure] = _oldFigureGraphicProperties;
+            if (_visibleFigureGraphicProperties.ContainsKey(_figure))
+                _visibleFigureGraphicProperties[_figure] = _oldFigureGraphicProperties;
+        }
+    }
+}

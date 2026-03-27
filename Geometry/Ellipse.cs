@@ -1,0 +1,62 @@
+using System.Numerics;
+
+namespace Geometry
+{
+    public class Ellipse : IFigure
+    {
+        public Point Center { get; set;} //Эллипс задаётся своим центром
+        public ReadOnlySpan<Point> Vertex => new Point[] { new Point(Rx, Ry) }; 
+        double Rx, Ry, Angle; //А также радиусами по X и Y
+
+        public Ellipse(Point c, double rx, double ry) //Соответственно, одна точка и два числа
+        {
+            Center = c;
+            Rx = rx;
+            Ry = ry;
+            Angle = 0;
+        }
+        public void Scale(double dx, double dy)
+        {
+            if (dx == 0 || dy == 0)
+            throw new IncorrectScaleParameter();
+            Rx *= Math.Abs(dx);
+            Ry *= Math.Abs(dy);
+        }
+        public void RadialScale(double dr)
+        {
+            if (dr == 0)
+            throw new IncorrectScaleParameter();
+            Rx *= Math.Abs(dr);
+            Ry *= Math.Abs(dr);
+        }
+        public void Rotate(double angle)
+        {
+            Angle += angle;
+        }
+        public void Move(double dx, double dy)
+        {
+            Point d = new Point(dx, dy);
+            Center += d;
+        }
+        public void UpdateVertex(ReadOnlySpan<Point> NewVertex)
+        {
+            if (!NewVertex.IsEmpty)
+            throw new IncorrectVertexSpan("Эллипс не имеет вершин");
+        }
+
+        public bool IsIn(Point p, double eps)
+        {
+            if (eps < 0)
+            throw new IncorrectInaccuracyParameter();
+            Point dst = p - Center;
+            if (dst.X == 0 && dst.Y == 0)
+                return true;
+            double x = dst.X * Math.Cos(-Angle) - dst.Y * Math.Sin(-Angle),
+                y = dst.X * Math.Sin(-Angle) + dst.Y * Math.Cos(-Angle);
+            dst = new Point(x, y);
+            double distance = Math.Sqrt(Math.Pow(dst.X, 2) + Math.Pow(dst.Y, 2)), 
+            r = Rx*Ry / Math.Sqrt(Math.Pow(Ry * dst.X / distance, 2) + Math.Pow(Rx * dst.Y / distance, 2));
+            return distance <= r + eps;
+        }
+    }
+}
