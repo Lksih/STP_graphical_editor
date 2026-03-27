@@ -207,6 +207,8 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         DecreaseSelectedFigureCommand = ReactiveCommand.Create(DecreaseSelectedFigure);
 
         SelectThemeCommand = ReactiveCommand.Create<string?>(SelectTheme);
+        ShowHelpCommand = ReactiveCommand.CreateFromTask(ShowHelp);
+        ShowAboutCommand = ReactiveCommand.CreateFromTask(ShowAbout);
 
         NewLayerCommand = ReactiveCommand.Create(NewLayer);
 
@@ -540,6 +542,8 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
     public ReactiveCommand<Unit, Unit> RotateSelectedFigureCommand { get; }
 
     public ReactiveCommand<string?, Unit> SelectThemeCommand { get; }
+    public ReactiveCommand<Unit, Unit> ShowHelpCommand { get; }
+    public ReactiveCommand<Unit, Unit> ShowAboutCommand { get; }
 
     public ReactiveCommand<Unit, Unit> NewLayerCommand { get; }
     public ReactiveCommand<Unit, Unit> DeleteLayerCommand { get; }
@@ -777,6 +781,50 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
     {
         if (Enum.TryParse<EditorTheme>(theme, ignoreCase: true, out var parsed))
             SelectedTheme = parsed;
+    }
+
+    private Task ShowHelp()
+    {
+        const string message =
+            "Сочетания клавиш:\n" +
+            "Ctrl+Z — отмена\n" +
+            "Ctrl+Y — повтор\n" +
+            "E — инструмент удаления\n" +
+            "V — инструмент перемещения\n" +
+            "R — поворот выбранной фигуры\n" +
+            "L — режим линии\n" +
+            "P — режим многоугольника\n" +
+            "O — режим эллипса\n" +
+            "Ctrl + колесо мыши — масштабирование холста"; 
+
+        return _dialogs.ShowMessageAsync("Справка", message);
+    }
+
+    private Task ShowAbout()
+    {
+    const string message =
+                "ПМ-23\n" +
+                "• Geometry\n" +
+                "Владислав Шкловчик\n" +
+                "Павел Шмонин\n" +
+                "• GUI\n" +
+                "Кирилл Рыбин\n" +
+                "Владимир Костовский\n" +
+                "Алексей Якутин\n" +
+                "• MvvM\n" +
+                "Илья Воробьев\n" +
+                "Алина Куракина\n" +
+                "Матвей Корнев\n" +
+                "• I/O\n" +
+                "Виталий Тривайлов\n" +
+                "Бато Мандалов\n" +
+                "Максим Гайченко\n" +
+                "• Тестеры\n" +
+                "Игнат Свистунов\n" +
+                "Дмитрий Прокопенко\n" +
+                "Руслан Пономарев\n\n" +
+                "НГТУ, 2026.";
+        return _dialogs.ShowMessageAsync("О программе", message);
     }
 
     private void NewLayer()

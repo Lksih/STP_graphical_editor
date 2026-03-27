@@ -97,6 +97,10 @@
                     <MenuItem Header="Тёмная" Command="{Binding SelectThemeCommand}" CommandParameter="Dark" />
                 </MenuItem>
             </MenuItem>
+            <MenuItem Header="Справка">
+                <MenuItem Header="Справка" Command="{Binding ShowHelpCommand}" />
+                <MenuItem Header="О программе" Command="{Binding ShowAboutCommand}" />
+            </MenuItem>
         </Menu>
 
         <!-- Properties strip -->

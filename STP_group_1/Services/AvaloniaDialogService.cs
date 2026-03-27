@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Layout;
 using Avalonia.Platform.Storage;
 using Avalonia.Media;
 using STP_group_1.Views.Dialogs;
@@ -29,6 +31,41 @@ public sealed class AvaloniaDialogService : IUiDialogService
 
         var result = await dialog.ShowDialog<bool?>(_owner);
         return result == true;
+    }
+
+    public async Task ShowMessageAsync(string title, string message)
+    {
+        var dialog = new Window
+        {
+            Title = title,
+            Width = 560,
+            Height = 450,
+            CanResize = true,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner
+        };
+
+        var text = new TextBlock
+        {
+            Text = message,
+            TextWrapping = TextWrapping.Wrap
+        };
+
+        var okButton = new Button
+        {
+            Content = "OK",
+            IsDefault = true,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            MinWidth = 88
+        };
+        okButton.Click += (_, _) => dialog.Close();
+
+        var panel = new DockPanel { Margin = new Thickness(16) };
+        DockPanel.SetDock(okButton, Dock.Bottom);
+        panel.Children.Add(okButton);
+        panel.Children.Add(text);
+
+        dialog.Content = panel;
+        await dialog.ShowDialog(_owner);
     }
 
     public async Task<NewCanvasOptions?> ShowNewCanvasDialogAsync(double currentWidth, double currentHeight, Color currentBackground)
