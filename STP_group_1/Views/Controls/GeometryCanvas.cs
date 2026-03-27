@@ -15,6 +15,15 @@ namespace STP_group_1.Views.Controls;
 
 public sealed class GeometryCanvas : Control
 {
+    public static readonly StyledProperty<IEnumerable<Geometry.Point>> PressedPointsProperty =
+        AvaloniaProperty.Register<GeometryCanvas, IEnumerable<Geometry.Point>>(nameof(PressedPoints));
+
+    public IEnumerable<Geometry.Point> PressedPoints
+    {
+        get => GetValue(PressedPointsProperty);
+        set => SetValue(PressedPointsProperty, value);
+    }
+
     public static readonly StyledProperty<IEnumerable<IFigure>?> FiguresProperty =
         AvaloniaProperty.Register<GeometryCanvas, IEnumerable<IFigure>?>(nameof(Figures));
 
@@ -204,6 +213,21 @@ public sealed class GeometryCanvas : Control
         foreach (var figure in figures)
         {
             DrawFigure(context, figure);
+        }
+
+        var points = PressedPoints;
+        if (points is null)
+            return;
+
+        foreach (var point in points)
+        {
+            context.DrawEllipse(
+                Brushes.Red,
+                null,
+                new Avalonia.Point(point.X * ZoomFactor, point.Y * ZoomFactor),
+                3,
+                3
+            );
         }
     }
 

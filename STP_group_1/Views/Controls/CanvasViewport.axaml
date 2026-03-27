@@ -19,6 +19,7 @@
 				<controls:GeometryCanvas Figures="{Binding VisibleFigures}"
 										FigureGraphicPropertiesMap="{Binding VisibleFiguresGraphicProperties}"
 										SelectedFigure="{Binding SelectedFigure}"
+										PressedPoints="{Binding PressedPoints}"
 										ZoomFactor="{Binding ZoomFactor}"
 										Width="{Binding CanvasWidthZoomed}"
 										Height="{Binding CanvasHeightZoomed}"

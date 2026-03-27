@@ -67,6 +67,8 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         set => this.RaiseAndSetIfChanged(ref _isColorPickerVisible, value);
     }
 
+    public ObservableCollection<Geometry.Point> PressedPoints { get; } = new();
+
     private Geometry.Point PreviousCenter = new Geometry.Point(0, 0);
 
     public MainWindowViewModel(IUiDialogService dialogs, IEditorIoService io)
@@ -750,6 +752,8 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
         var command = new AddFigureCommand(CurrentLayerFigures, CurrentLayerFiguresGraphicProperties, figure, figureGraphicProperties);
         ExecuteCommand(command);
 
+        PressedPoints.Clear();
+
         SelectedFigure = figure;
         IsDirty = true;
     }
@@ -830,14 +834,17 @@ public sealed class MainWindowViewModel : ViewModelBase, ICanvasInteractionHandl
 
         if (SelectedTool == ToolKind.Line || SelectedTool == ToolKind.Polygon || SelectedTool == ToolKind.Ellipse || SelectedTool == ToolKind.Curve || SelectedTool == ToolKind.CurvedPolygon)
         {
+            PressedPoints.Add(modelPoint);
             if (SelectedTool == ToolKind.Line && isLeftButtonPressed)
             {
                 if (_lineStart is null)
                 {
+                    // При первом клике сохраняем начальную точку
                     _lineStart = modelPoint;
                 }
                 else
                 {
+                    // При втором клике создаём линию и сбрасываем точку
                     AddNewFigure(new Line(_lineStart, modelPoint));
                     _lineStart = null;
                 }
