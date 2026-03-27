@@ -1,6 +1,7 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Geometry;
+using Geometry.Graphic;
 using InputOutput;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -17,7 +18,7 @@ namespace TestProject
         }
 
         [TestMethod]
-        public void SaveAndLoadFigures_Line_RoundTripPreservesData()
+        public async Task SaveAndLoadFigures_Line_RoundTripPreservesData()
         {
             string path = CreateTempFilePath();
 
@@ -27,9 +28,10 @@ namespace TestProject
                 {
                     new Line(new Point(0, 0), new Point(4, 4))
                 };
+                var figuresProperties = new Dictionary<IFigure, IFigureGraphicProperties>();
 
-                FigureJsonIo.SaveFigures(figures, path);
-                var loaded = FigureJsonIo.LoadFigures(path);
+                await FigureJsonIo.SaveFiguresAsync(figures, figuresProperties, path);
+                var (loaded, styles) = await FigureJsonIo.LoadFiguresAsync(path);
 
                 Assert.AreEqual(1, loaded.Count);
                 Assert.IsInstanceOfType(loaded[0], typeof(Line));
@@ -48,7 +50,7 @@ namespace TestProject
         }
 
         [TestMethod]
-        public void SaveAndLoadFigures_Curve_RoundTripPreservesVertices()
+        public async Task SaveAndLoadFigures_Curve_RoundTripPreservesVertices()
         {
             string path = CreateTempFilePath();
 
@@ -63,9 +65,10 @@ namespace TestProject
                         new Point(4, 0)
                     })
                 };
+                var figuresProperties = new Dictionary<IFigure, IFigureGraphicProperties>();
 
-                FigureJsonIo.SaveFigures(figures, path);
-                var loaded = FigureJsonIo.LoadFigures(path);
+                await FigureJsonIo.SaveFiguresAsync(figures, figuresProperties, path);
+                var (loaded, styles) = await FigureJsonIo.LoadFiguresAsync(path);
 
                 Assert.AreEqual(1, loaded.Count);
                 Assert.IsInstanceOfType(loaded[0], typeof(Curve));
@@ -84,7 +87,7 @@ namespace TestProject
         }
 
         [TestMethod]
-        public void SaveAndLoadFigures_Polygon_RoundTripPreservesVertices()
+        public async Task SaveAndLoadFigures_Polygon_RoundTripPreservesVertices()
         {
             string path = CreateTempFilePath();
 
@@ -99,9 +102,10 @@ namespace TestProject
                         new Point(0, 4)
                     })
                 };
+                var figuresProperties = new Dictionary<IFigure, IFigureGraphicProperties>();
 
-                FigureJsonIo.SaveFigures(figures, path);
-                var loaded = FigureJsonIo.LoadFigures(path);
+                await FigureJsonIo.SaveFiguresAsync(figures, figuresProperties, path);
+                var (loaded, styles) = await FigureJsonIo.LoadFiguresAsync(path);
 
                 Assert.AreEqual(1, loaded.Count);
                 Assert.IsInstanceOfType(loaded[0], typeof(Polygon));
@@ -119,7 +123,7 @@ namespace TestProject
         }
 
         [TestMethod]
-        public void LoadFigures_EmptyJsonArray_ReturnsEmptyList()
+        public async Task LoadFigures_EmptyJsonArray_ReturnsEmptyList()
         {
             string path = CreateTempFilePath();
 
@@ -127,7 +131,7 @@ namespace TestProject
             {
                 File.WriteAllText(path, "[]");
 
-                var loaded = FigureJsonIo.LoadFigures(path);
+                var (loaded, styles) = await FigureJsonIo.LoadFiguresAsync(path);
 
                 Assert.IsNotNull(loaded);
                 Assert.AreEqual(0, loaded.Count);
@@ -155,8 +159,8 @@ namespace TestProject
                 ]
                 """);
 
-                Assert.ThrowsException<NotSupportedException>(() =>
-                    FigureJsonIo.LoadFigures(path));
+                Assert.ThrowsExceptionAsync<NotSupportedException>(() =>
+                    FigureJsonIo.LoadFiguresAsync(path));
             }
             finally
             {
@@ -183,8 +187,8 @@ namespace TestProject
                 ]
                 """);
 
-                Assert.ThrowsException<InvalidDataException>(() =>
-                    FigureJsonIo.LoadFigures(path));
+                Assert.ThrowsExceptionAsync<InvalidDataException>(() =>
+                    FigureJsonIo.LoadFiguresAsync(path));
             }
             finally
             {
@@ -212,8 +216,8 @@ namespace TestProject
                 ]
                 """);
 
-                Assert.ThrowsException<InvalidDataException>(() =>
-                    FigureJsonIo.LoadFigures(path));
+                Assert.ThrowsExceptionAsync<InvalidDataException>(() =>
+                    FigureJsonIo.LoadFiguresAsync(path));
             }
             finally
             {
@@ -243,8 +247,8 @@ namespace TestProject
                 ]
                 """);
 
-                Assert.ThrowsException<InvalidDataException>(() =>
-                    FigureJsonIo.LoadFigures(path));
+                Assert.ThrowsExceptionAsync<InvalidDataException>(() =>
+                    FigureJsonIo.LoadFiguresAsync(path));
             }
             finally
             {
@@ -262,8 +266,8 @@ namespace TestProject
             {
                 File.WriteAllText(path, "{ invalid json ]");
 
-                Assert.ThrowsException<Exception>(() =>
-                    FigureJsonIo.LoadFigures(path));
+                Assert.ThrowsExceptionAsync<Exception>(() =>
+                    FigureJsonIo.LoadFiguresAsync(path));
             }
             finally
             {
@@ -283,9 +287,10 @@ namespace TestProject
                 {
                     new FakeFigure()
                 };
+                var figuresProperties = new Dictionary<IFigure, IFigureGraphicProperties>();
 
-                Assert.ThrowsException<NotSupportedException>(() =>
-                    FigureJsonIo.SaveFigures(figures, path));
+                Assert.ThrowsExceptionAsync<NotSupportedException>(() =>
+                    FigureJsonIo.SaveFiguresAsync(figures, figuresProperties, path));
             }
             finally
             {

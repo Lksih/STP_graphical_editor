@@ -63,7 +63,7 @@ public static class FigureJsonIo
 
         // Пробуем достать fill
         ColorDto? fillDto = null;
-        if (style.IsFilled)
+        if (style != null && style.IsFilled)
         {
             var fill = style.FillColor;
             fillDto = new ColorDto { R = fill.R, G = fill.G, B = fill.B, A = fill.A };

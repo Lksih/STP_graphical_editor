@@ -102,7 +102,7 @@ namespace TestProject
         }
 
         [TestMethod]
-
+        public void Ellips_UpdateVertex_WithNonEmptySpan_ThrowsException()
         {
             var ellipse = new Ellipse(new Point(0, 0), 5, 3);
 
