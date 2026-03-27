@@ -19,5 +19,10 @@
   <ItemGroup>
     <ProjectReference Include="..\Geometry\Geometry.csproj" />
   </ItemGroup>
+  
+  <ItemGroup>
+     <ProjectReference Include="..\Geometry\Geometry.csproj" />
+     <ProjectReference Include="..\InputOutput\InputOutput.csproj" />
+  </ItemGroup>
 
 </Project>

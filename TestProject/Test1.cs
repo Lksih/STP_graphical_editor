@@ -19,6 +19,17 @@ namespace TestProject
         }
 
         [TestMethod]
+        public void Point_DotProduct_WorksCorrectly()
+        {
+            var a = new Point(1, 2);
+            var b = new Point(3, 4);
+
+            var result = a * b;
+
+            Assert.AreEqual(11, result, 0.0001);
+        }
+
+        [TestMethod]
         public void Line_Center_IsCalculatedCorrectly()
         {
             var line = new Line(new Point(0, 0), new Point(4, 4));
@@ -48,6 +59,16 @@ namespace TestProject
             var result = line.IsIn(new Point(2, 2), 0.001);
 
             Assert.IsTrue(result);
+        }
+
+        [TestMethod]
+        public void Line_IsIn_PointOutsideLine_ReturnsFalse()
+        {
+            var line = new Line(new Point(0, 0), new Point(4, 4));
+
+            var result = line.IsIn(new Point(2, 3), 0.001);
+
+            Assert.IsFalse(result);
         }
 
         [TestMethod]
@@ -81,7 +102,7 @@ namespace TestProject
         }
 
         [TestMethod]
-        public void Ellipse_Scale_WithZero_ThrowsException()
+
         {
             var ellipse = new Ellipse(new Point(0, 0), 5, 3);
 
@@ -121,6 +142,29 @@ namespace TestProject
         }
 
         [TestMethod]
+        public void Curve_UpdateVertex_RecalculatesCenter()
+        {
+            var curve = new Curve(new Point[]
+            {
+                new Point(0, 0),
+                new Point(2, 0),
+                new Point(1, 2)
+            });
+
+            var newVerts = new Point[]
+            {
+                new Point(3, 3),
+                new Point(6, 3),
+                new Point(3, 6)
+            };
+
+            curve.UpdateVertex(newVerts);
+
+            Assert.AreEqual(4, curve.Center.X, 0.0001);
+            Assert.AreEqual(4, curve.Center.Y, 0.0001);
+        }
+
+        [TestMethod]
         public void Polygon_Constructor_WithLessThanThreeVertices_ThrowsException()
         {
             var verts = new Point[]
@@ -148,6 +192,23 @@ namespace TestProject
             var result = polygon.IsIn(new Point(1, 1), 0.001);
 
             Assert.IsTrue(result);
+        }
+
+        [TestMethod]
+        public void Polygon_IsIn_PointOutsideTriangle_ReturnsFalse()
+        {
+            var verts = new Point[]
+            {
+                new Point(0, 0),
+                new Point(4, 0),
+                new Point(0, 4)
+            };
+
+            var polygon = new Polygon(verts);
+
+            var result = polygon.IsIn(new Point(5, 5), 0.001);
+
+            Assert.IsFalse(result);
         }
 
         [TestMethod]
